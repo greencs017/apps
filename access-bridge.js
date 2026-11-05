@@ -22,7 +22,13 @@
     console.info('[access]',state,detail);
   }
   function fail(message){clearTimeout(timer);log('ERROR',message);document.getElementById('bridgeDiagnostics').open=true;shell.classList.remove('ready');document.getElementById('loadingText').textContent=message;document.getElementById('retry').hidden=false;}
-  function deadline(){clearTimeout(timer);timer=setTimeout(()=>fail('No se completó el acceso. Último estado: '+lastState+'. Pulsa Reintentar.'),45000);}
+  function deadline(){
+    clearTimeout(timer);
+    // El Simulador puede esperar hasta 55 s una respuesta completa del backend.
+    // Las demás aplicaciones mantienen su plazo de inicio original.
+    const ms=appId==='simulador'?65000:45000;
+    timer=setTimeout(()=>fail('No se completó el acceso. Último estado: '+lastState+'. Pulsa Reintentar.'),ms);
+  }
   function transition(state,detail=''){
     lastState=state;log(state,detail);
     if(['LOGIN_READY','GOOGLE_REQUIRED','GOOGLE_READY','APP_READY'].includes(state)){clearTimeout(timer);shell.classList.add('ready');}
