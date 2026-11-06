@@ -12,7 +12,6 @@ on:
       - 'tests/access-bridge.test.cjs'
       - 'tests/onesignal-shared-worker.test.cjs'
       - 'escalafon-online/**'
-      - 'escalafon-online-beta/**'
       - 'revisor-cargo-fiscal/**'
       - 'simulador-remuneraciones/**'
       - 'gastos/**'
@@ -47,7 +46,7 @@ jobs:
           test -f index.html
           mkdir -p _site
           cp .nojekyll index.html ./*.js _site/
-          for dir in escalafon-online escalafon-online-beta revisor-cargo-fiscal simulador-remuneraciones gastos; do
+          for dir in escalafon-online revisor-cargo-fiscal simulador-remuneraciones gastos; do
             cp -R "$dir" "_site/$dir"
           done
           test -f _site/OneSignalSDKWorker.js
