@@ -10,7 +10,7 @@ function boot(saved=new Map(),nav={}){
  };
  const context={
    URL,Uint8Array,crypto:crypto.webcrypto,console:{info(){}},Date,Math,
-   location:{href:'https://johngreen017.github.io/apps/revisor-cargo-fiscal/',reload(){}},
+   location:{href:'https://greencs017.github.io/apps/revisor-cargo-fiscal/',reload(){}},
    navigator:{platform:nav.platform||'iPhone',userAgent:nav.userAgent||'iPhone',maxTouchPoints:nav.maxTouchPoints??5},
    localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)},
    document:{getElementById:el,createElement:()=>({}),head:{appendChild(){}}},

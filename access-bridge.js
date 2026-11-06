@@ -119,7 +119,7 @@
     if(pushPromise)return pushPromise;
     pushPromise=new Promise((resolve,reject)=>{
       window.OneSignalDeferred=window.OneSignalDeferred||[];
-      window.OneSignalDeferred.push(async sdk=>{try{await sdk.init({appId:'0956c8db-37fb-4a11-98bd-397d121ae8fa',serviceWorkerParam:{scope:new URL('.',location.href).pathname},serviceWorkerPath:new URL('OneSignalSDKWorker.js',location.href).pathname});oneSignal=sdk;sdk.User.PushSubscription.addEventListener('change',()=>{pushRegistrationId='';void sharePush();});sdk.Notifications.addEventListener('permissionChange',()=>{pushRegistrationId='';void sharePush();});resolve();await sharePush();}catch(e){reject(e);}});
+      window.OneSignalDeferred.push(async sdk=>{try{await sdk.init({appId:'0956c8db-37fb-4a11-98bd-397d121ae8fa',serviceWorkerParam:{scope:'/apps/'},serviceWorkerPath:'/apps/OneSignalSDKWorker.js'});oneSignal=sdk;sdk.User.PushSubscription.addEventListener('change',()=>{pushRegistrationId='';void sharePush();});sdk.Notifications.addEventListener('permissionChange',()=>{pushRegistrationId='';void sharePush();});resolve();await sharePush();}catch(e){reject(e);}});
       const s=document.createElement('script');s.src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';s.defer=true;s.onerror=()=>reject(Error('No cargaron las notificaciones.'));document.head.appendChild(s);
     });return pushPromise;
   }
