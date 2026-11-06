@@ -66,7 +66,7 @@ test('missing bridge exposes bounded error and a retry action',()=>{
 
 test('all entrypoints use Vercel and never expose Apps Script URLs',()=>{
  const expected={
-   'escalafon-online':'https://escalafon-pns.vercel.app/',
+   'escalafon-online':'https://escalafon-online.vercel.app/',
    'revisor-cargo-fiscal':'https://revisor-cargo-l5.vercel.app/',
    'simulador-remuneraciones':'https://simulador-remuneraciones-delta.vercel.app/'
  };
@@ -80,12 +80,15 @@ test('all entrypoints use Vercel and never expose Apps Script URLs',()=>{
  }
 });
 
-test('beta launcher opens the Apps Script-free Escalafón with the same device identity',()=>{
+test('Escalafón oficial abre la versión sin Apps Script y el puente acepta ambos orígenes',()=>{
  const path=require('node:path');
- const html=fs.readFileSync(path.join(__dirname,'..','escalafon-online-beta','index.html'),'utf8');
- assert.match(html,/data-app="escalafon"/);
- assert.ok(html.includes('data-src="https://escalafon-online.vercel.app/'));
- assert.match(html,/src="\.\.\/access-bridge\.js\?v=/);
+ for(const file of ['index.html','windows.html']){
+   const html=fs.readFileSync(path.join(__dirname,'..','escalafon-online',file),'utf8');
+   assert.match(html,/data-app="escalafon"/);
+   assert.ok(html.includes('data-src="https://escalafon-online.vercel.app/'));
+   assert.ok(!html.includes('escalafon-pns.vercel.app'));
+ }
+ assert.ok(!fs.existsSync(path.join(__dirname,'..','escalafon-online-beta')),'el lanzador de prueba se retiró');
  const bridge=fs.readFileSync(path.join(__dirname,'..','access-bridge.js'),'utf8');
  assert.ok(bridge.includes("'https://escalafon-pns.vercel.app','https://escalafon-online.vercel.app'"));
 });
