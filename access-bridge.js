@@ -95,11 +95,16 @@
     }catch(e){status.textContent=e.message;fail(e.message);}
   }
   let pushRegistrationId='',pushRegistrationTimer;
-  function pushError(message,needsApi=false){send({type:prefix+'push-status',enabled:false,error:message,needsApi});}
+  let pushActivationInProgress=false,pushActivationTimer,pushPermissionDialog=null;
+  function closePushPermissionDialog(){if(pushPermissionDialog)pushPermissionDialog.style.display='none';}
+  function pushError(message,needsApi=false){
+    pushActivationInProgress=false;clearTimeout(pushActivationTimer);closePushPermissionDialog();
+    send({type:prefix+'push-status',enabled:false,error:message,needsApi});
+  }
   async function sharePush(){
     if(!owner||!oneSignal)return;
     const enabled=oneSignal.User.PushSubscription.optedIn,id=oneSignal.User.PushSubscription.id;
-    if(!enabled||!id){pushRegistrationId='';send({type:prefix+'push-status',enabled:false});return;}
+    if(!enabled||!id){pushRegistrationId='';if(!pushActivationInProgress)send({type:prefix+'push-status',enabled:false});return;}
     if(pushRegistrationId===id)return;
     pushRegistrationId=id;
     clearTimeout(pushRegistrationTimer);
@@ -115,6 +120,72 @@
       const s=document.createElement('script');s.src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';s.defer=true;s.onerror=()=>reject(Error('No cargaron las notificaciones.'));document.head.appendChild(s);
     });return pushPromise;
   }
+
+  // Los navegadores, especialmente iOS, exigen que el permiso se solicite
+  // desde una pulsación real en el documento principal, no desde un iframe
+  // ni en la recepción de postMessage.
+  function getPushPermissionDialog(){
+    if(pushPermissionDialog)return pushPermissionDialog;
+    const shade=document.createElement('div');
+    shade.id='appsPushPermissionDialog';
+    shade.style.cssText='position:fixed;inset:0;z-index:2147483647;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(10,32,23,.62);font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
+    shade.innerHTML='<section role="dialog" aria-modal="true" aria-labelledby="appsPushTitle" style="width:min(100%,420px);max-height:90vh;overflow:auto;box-sizing:border-box;padding:24px;background:#fff;border-radius:16px;color:#173d2b;box-shadow:0 16px 45px #0004">'
+      +'<h2 id="appsPushTitle" style="font-size:22px;margin:0 0 12px">Activar notificaciones</h2>'
+      +'<p data-push-message role="status" aria-live="polite" style="font-size:15px;line-height:1.5;margin:0 0 18px">Preparando OneSignal…</p>'
+      +'<button type="button" data-push-allow disabled style="width:100%;min-height:48px;border:0;border-radius:10px;background:#173d2b;color:#fff;font:600 16px inherit;padding:12px">Permitir notificaciones</button>'
+      +'<button type="button" data-push-cancel style="width:100%;min-height:44px;margin-top:10px;border:1px solid #b9cabe;border-radius:10px;background:white;color:#173d2b;font:600 16px inherit;padding:10px">Cancelar</button>'
+      +'</section>';
+    document.body.appendChild(shade);
+    const allow=shade.querySelector('[data-push-allow]');
+    const status=shade.querySelector('[data-push-message]');
+    shade.querySelector('[data-push-cancel]').addEventListener('click',()=>{
+      pushError('Activación cancelada. Puedes volver a intentarlo.');
+    });
+    allow.addEventListener('click',()=>{
+      // La llamada al SDK se hace inmediatamente desde este evento físico.
+      allow.disabled=true;
+      status.textContent='Solicitando permiso al dispositivo…';
+      let permissionRequest;
+      try{permissionRequest=oneSignal.Notifications.requestPermission();}
+      catch(e){pushError(e.message||'El navegador no permitió solicitar notificaciones.');return;}
+      Promise.resolve(permissionRequest).then(async()=>{
+        if(!oneSignal.Notifications.permission){
+          throw Error('El dispositivo no concedió permiso. Revisa Ajustes > Notificaciones para esta aplicación.');
+        }
+        status.textContent='Permiso concedido. Registrando este dispositivo…';
+        await oneSignal.User.PushSubscription.optIn();
+        await sharePush();
+      }).catch(e=>pushError(e.message||'No fue posible registrar las notificaciones.'));
+    });
+    pushPermissionDialog=shade;
+    return shade;
+  }
+  async function beginPushPermission(){
+    const dialog=getPushPermissionDialog(),message=dialog.querySelector('[data-push-message]');
+    const allow=dialog.querySelector('[data-push-allow]');
+    dialog.style.display='flex';
+    if(pushActivationInProgress)return;
+    pushActivationInProgress=true;
+    allow.disabled=true;
+    message.textContent='Preparando OneSignal…';
+    clearTimeout(pushActivationTimer);
+    pushActivationTimer=setTimeout(()=>pushError('La activación no respondió. Comprueba la conexión y vuelve a intentarlo.'),45000);
+    try{
+      const ios=/iPad|iPhone|iPod/.test(navigator.userAgent||'');
+      const standalone=navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
+      if(ios&&!standalone)throw Error('En iPhone/iPad, abre la aplicación desde el ícono agregado a la pantalla de inicio para recibir notificaciones.');
+      await Promise.race([ensurePush(),new Promise((_,reject)=>setTimeout(()=>reject(Error('OneSignal no inició. Cierra la aplicación y vuelve a abrirla.')),15000))]);
+      if(!pushActivationInProgress)return;
+      if(!oneSignal.Notifications.isPushSupported())throw Error('Este navegador no admite notificaciones push en el modo actual.');
+      if(typeof Notification!=='undefined'&&Notification.permission==='denied'){
+        throw Error('Las notificaciones están bloqueadas. Habilítalas en Ajustes > Notificaciones del dispositivo.');
+      }
+      message.textContent='Pulsa «Permitir notificaciones». El permiso se solicitará directamente desde esta aplicación.';
+      allow.disabled=false;
+      allow.focus();
+    }catch(e){pushError(e.message||'No fue posible preparar las notificaciones.');}
+  }
+
   window.addEventListener('message',async event=>{
     const d=event.data;
     if(!d||typeof d!=='object'||d.channel!==channel||d.app!==appId||!trustedOrigin(event.origin)||!event.source)return;
@@ -138,11 +209,12 @@
       owner=d.owner===true;if(owner)ensurePush().catch(e=>pushError(e.message||'No fue posible preparar las notificaciones.'));else{pushRegistrationId='';clearTimeout(pushRegistrationTimer);}
     }else if(d.type===prefix+'push-registration-result'&&owner){
       if(d.subscriptionId!==pushRegistrationId)return;
+      pushActivationInProgress=false;clearTimeout(pushActivationTimer);closePushPermissionDialog();
       clearTimeout(pushRegistrationTimer);
       if(d.ok&&d.apiConfigurada){send({type:prefix+'push-status',enabled:true});}
       else{pushRegistrationId='';pushError(d.error||(d.apiConfigurada===false?'Falta configurar la App API Key de OneSignal en esta aplicación.':'El servidor no confirmó el dispositivo.'),d.ok===true&&d.apiConfigurada===false);}
     }else if(d.type===prefix+'enable-push'&&owner){
-      try{await ensurePush();if(!oneSignal.Notifications.isPushSupported())throw Error('En iPhone/iPad, agrega esta app a la pantalla de inicio y ábrela desde su icono para activar notificaciones.');await oneSignal.Notifications.requestPermission();if(!oneSignal.Notifications.permission)throw Error('Permite las notificaciones de esta app en los ajustes del dispositivo.');await oneSignal.User.PushSubscription.optIn();pushRegistrationId='';await sharePush();}catch(e){pushError(e.message||'No fue posible activar las notificaciones.');}
+      void beginPushPermission();
     }
   });
   document.getElementById('retry').onclick=()=>location.reload();
