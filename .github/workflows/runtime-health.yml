@@ -63,14 +63,14 @@ jobs:
             fi
           }
 
-          check_url "GitHub Pages Escalafón"             "https://johngreen017.github.io/apps/escalafon-online/"             "Abriendo Escalafón Online"
+          check_url "GitHub Pages Escalafón"             "https://greencs017.github.io/apps/escalafon-online/"             "Abriendo Escalafón Online"
 
           check_url "Vercel Escalafón"             "https://escalafon-online.vercel.app/"             "Escalafón de Oficiales"
 
-          check_url "GitHub Pages Revisor"             "https://johngreen017.github.io/apps/revisor-cargo-fiscal/"             "Abriendo Revisor de Cargo Fiscal"
+          check_url "GitHub Pages Revisor"             "https://greencs017.github.io/apps/revisor-cargo-fiscal/"             "Abriendo Revisor de Cargo Fiscal"
 
           check_url "Vercel Revisor"             "https://revisor-cargo-l5.vercel.app/"             "Revisor de Cargo Fiscal"
 
-          check_url "GitHub Pages Simulador"             "https://johngreen017.github.io/apps/simulador-remuneraciones/"             "Abriendo Simulador de Remuneraciones"
+          check_url "GitHub Pages Simulador"             "https://greencs017.github.io/apps/simulador-remuneraciones/"             "Abriendo Simulador de Remuneraciones"
 
           check_url "Vercel Simulador"             "https://simulador-remuneraciones-delta.vercel.app/"             "Simulador de Remuneraciones"
