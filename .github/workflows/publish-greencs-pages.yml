@@ -9,6 +9,8 @@ on:
       - 'access-bridge.js'
       - 'install-guide.js'
       - 'OneSignalSDKWorker.js'
+      - 'tests/access-bridge.test.cjs'
+      - 'tests/onesignal-shared-worker.test.cjs'
       - 'escalafon-online/**'
       - 'revisor-cargo-fiscal/**'
       - 'simulador-remuneraciones/**'
