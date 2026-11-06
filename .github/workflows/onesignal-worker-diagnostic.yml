@@ -50,4 +50,13 @@ jobs:
               echo "$url: Versión anterior en Pages"
             fi
           done
-          echo "Diagnóstico terminado. Consultar códigos HTTP."
+          echo "===== Validación vinculante del worker publicado ====="
+          worker="$(mktemp)"
+          headers="$(mktemp)"
+          code="$(curl -sS -L -D "$headers" -o "$worker" -w '%{http_code}' 'https://greencs017.github.io/apps/OneSignalSDKWorker.js?verify=20261106')"
+          echo "HTTP=$code"
+          grep -i '^content-type:' "$headers" | tail -1
+          test "$code" = "200"
+          grep -Fq "importScripts(" "$worker"
+          grep -i '^content-type:' "$headers" | grep -qi 'javascript'
+          echo "PUBLICACION_WORKER=OK"
