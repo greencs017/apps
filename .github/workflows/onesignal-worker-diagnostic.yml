@@ -1,0 +1,53 @@
+name: Diagnóstico público de OneSignal
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/onesignal-worker-diagnostic.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Comparar direcciones públicas actuales y anteriores
+        shell: bash
+        run: |
+          set -u
+          check() {
+            local name="$1" url="$2"
+            local body hdr meta
+            body="$(mktemp)"; hdr="$(mktemp)"
+            meta="$(curl -sSL --connect-timeout 10 --max-time 30 -D "$hdr" -o "$body" -w '%{http_code}|%{url_effective}|%{content_type}' -H 'Cache-Control: no-cache' "$url")"
+            echo "===== $name ====="
+            echo "HTTP | URL FINAL | CONTENT-TYPE: $meta"
+            echo "Bytes: $(wc -c < "$body")"
+            echo "Fragmento: $(head -c 110 "$body" | tr '\n' ' ')"
+          }
+          check "GitHub Pages nuevo: home" "https://greencs017.github.io/apps/"
+          check "GitHub Pages nuevo: simulador" "https://greencs017.github.io/apps/simulador-remuneraciones/"
+          check "GitHub Pages nuevo: worker" "https://greencs017.github.io/apps/OneSignalSDKWorker.js?appId=0956c8db-37fb-4a11-98bd-397d121ae8fa&sdkVersion=160700"
+          check "GitHub Pages nuevo: worker sin parámetros" "https://greencs017.github.io/apps/OneSignalSDKWorker.js"
+          check "GitHub Pages antiguo: simulador" "https://johngreen017.github.io/apps/simulador-remuneraciones/"
+          check "GitHub Pages antiguo: worker" "https://johngreen017.github.io/apps/OneSignalSDKWorker.js"
+          check "SDK CDN OneSignal" "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"
+          check "JavaScript puente público" "https://greencs017.github.io/apps/access-bridge.js"
+          check "Páginas GitHub Pages API" "https://api.github.com/repos/greencs017/apps/pages"
+          check "Pages build latest API" "https://api.github.com/repos/greencs017/apps/pages/builds/latest"
+          echo "===== Versiones publicadas versus main ====="
+          for url in \
+            https://greencs017.github.io/apps/access-bridge.js \
+            https://greencs017.github.io/apps/simulador-remuneraciones/index.html; do
+            body="$(mktemp)"
+            curl -fsSL "$url" -o "$body"
+            if grep -Fq '20261106-shared-worker-apps1' "$body"; then
+              echo "$url: Versión nueva en Pages"
+            else
+              echo "$url: Versión anterior en Pages"
+            fi
+          done
+          echo "Diagnóstico terminado. Consultar códigos HTTP."
