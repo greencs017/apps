@@ -13,7 +13,7 @@ function boot(saved=new Map(),nav={}){
    location:{href:'https://greencs017.github.io/apps/revisor-cargo-fiscal/',reload(){}},
    navigator:{platform:nav.platform||'iPhone',userAgent:nav.userAgent||'iPhone',maxTouchPoints:nav.maxTouchPoints??5},
    localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)},
-   document:{getElementById:el,createElement:()=>({}),head:{appendChild(){}}},
+   document:{cookie:'',getElementById:el,createElement:()=>({}),head:{appendChild(){}}},
    setTimeout:f=>{timers.set(++tid,f);return tid;},clearTimeout:i=>timers.delete(i)
  };
  context.window={addEventListener:(name,f)=>handlers[name]=f,innerWidth:390};
