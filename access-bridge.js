@@ -105,7 +105,10 @@
     if(!owner||!oneSignal)return;
     const enabled=oneSignal.User.PushSubscription.optedIn,id=oneSignal.User.PushSubscription.id;
     if(!enabled||!id){pushRegistrationId='';if(!pushActivationInProgress)send({type:prefix+'push-status',enabled:false});return;}
-    if(pushRegistrationId===id)return;
+    if(pushRegistrationId===id){
+      if(pushActivationInProgress){pushActivationInProgress=false;clearTimeout(pushActivationTimer);closePushPermissionDialog();send({type:prefix+'push-status',enabled:true});}
+      return;
+    }
     pushRegistrationId=id;
     clearTimeout(pushRegistrationTimer);
     pushRegistrationTimer=setTimeout(()=>{pushRegistrationId='';pushError('El servidor no confirmó el registro. Pulsa Activar notificaciones para reintentar.');},20000);
@@ -132,8 +135,8 @@
     shade.innerHTML='<section role="dialog" aria-modal="true" aria-labelledby="appsPushTitle" style="width:min(100%,420px);max-height:90vh;overflow:auto;box-sizing:border-box;padding:24px;background:#fff;border-radius:16px;color:#173d2b;box-shadow:0 16px 45px #0004">'
       +'<h2 id="appsPushTitle" style="font-size:22px;margin:0 0 12px">Activar notificaciones</h2>'
       +'<p data-push-message role="status" aria-live="polite" style="font-size:15px;line-height:1.5;margin:0 0 18px">Preparando OneSignal…</p>'
-      +'<button type="button" data-push-allow disabled style="width:100%;min-height:48px;border:0;border-radius:10px;background:#173d2b;color:#fff;font:600 16px inherit;padding:12px">Permitir notificaciones</button>'
-      +'<button type="button" data-push-cancel style="width:100%;min-height:44px;margin-top:10px;border:1px solid #b9cabe;border-radius:10px;background:white;color:#173d2b;font:600 16px inherit;padding:10px">Cancelar</button>'
+      +'<button type="button" data-push-allow disabled style="width:100%;min-height:48px;border:0;border-radius:10px;background:#173d2b;color:#fff;font:600 16px -apple-system,BlinkMacSystemFont,sans-serif;padding:12px">Permitir notificaciones</button>'
+      +'<button type="button" data-push-cancel style="width:100%;min-height:44px;margin-top:10px;border:1px solid #b9cabe;border-radius:10px;background:white;color:#173d2b;font:600 16px -apple-system,BlinkMacSystemFont,sans-serif;padding:10px">Cancelar</button>'
       +'</section>';
     document.body.appendChild(shade);
     const allow=shade.querySelector('[data-push-allow]');
