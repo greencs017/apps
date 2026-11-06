@@ -43,7 +43,7 @@ jobs:
           grep -Fq "importScripts(" OneSignalSDKWorker.js
           test -f index.html
           mkdir -p _site
-          cp .nojekyll index.html access-bridge.js install-guide.js OneSignalSDKWorker.js _site/
+          cp .nojekyll index.html ./*.js _site/
           for dir in escalafon-online revisor-cargo-fiscal simulador-remuneraciones gastos; do
             cp -R "$dir" "_site/$dir"
           done
