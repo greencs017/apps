@@ -59,4 +59,5 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
       - name: Verificar URL de despliegue
-        run: echo "GitHub Pages: ${{ steps.deployment.outputs.page_url }}"
+        run: |
+          echo "GitHub Pages: ${{ steps.deployment.outputs.page_url }}"
