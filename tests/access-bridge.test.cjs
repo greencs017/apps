@@ -79,3 +79,13 @@ test('all entrypoints use Vercel and never expose Apps Script URLs',()=>{
    }
  }
 });
+
+test('beta launcher opens the Apps Script-free Escalafón with the same device identity',()=>{
+ const path=require('node:path');
+ const html=fs.readFileSync(path.join(__dirname,'..','escalafon-online-beta','index.html'),'utf8');
+ assert.match(html,/data-app="escalafon"/);
+ assert.ok(html.includes('data-src="https://escalafon-online.vercel.app/'));
+ assert.match(html,/src="\.\.\/access-bridge\.js\?v=/);
+ const bridge=fs.readFileSync(path.join(__dirname,'..','access-bridge.js'),'utf8');
+ assert.ok(bridge.includes("'https://escalafon-pns.vercel.app','https://escalafon-online.vercel.app'"));
+});

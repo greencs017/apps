@@ -7,13 +7,16 @@
   const prefix=appId==='escalafon'?'escalafon-':'apps-'+appId+'-';
   const logoutKey='apps.'+appId+'.signed-out.v1';
   const trace=document.getElementById('bridgeTrace'),summary=document.getElementById('bridgeSummary');
+  // Orígenes permitidos por aplicación. Escalafón admite la versión actual y
+  // la nueva versión sin Apps Script (escalafon-online) durante la transición.
   const appOrigins={
-    escalafon:'https://escalafon-pns.vercel.app',
-    revisor:'https://revisor-cargo-l5.vercel.app',
-    simulador:'https://simulador-remuneraciones-delta.vercel.app',
-    gastos:'https://mis-gastos-ecru.vercel.app'
+    escalafon:['https://escalafon-pns.vercel.app','https://escalafon-online.vercel.app'],
+    revisor:['https://revisor-cargo-l5.vercel.app'],
+    simulador:['https://simulador-remuneraciones-delta.vercel.app'],
+    gastos:['https://mis-gastos-ecru.vercel.app']
   };
-  const expectedOrigin=appOrigins[appId]||'';
+  const appSourceOrigin=(()=>{try{return new URL(app.dataset.src).origin;}catch(_){return '';}})();
+  const expectedOrigin=(appOrigins[appId]||[]).includes(appSourceOrigin)?appSourceOrigin:'';
   let source=null,sourceOrigin='',channel='',timer,lastState='OPENING',googlePromise,googleReady=false,owner=false,oneSignal=null;
   const events=[];
   function log(state,detail=''){
