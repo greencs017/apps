@@ -65,7 +65,7 @@ jobs:
 
           check_url "GitHub Pages Escalafón"             "https://johngreen017.github.io/apps/escalafon-online/"             "Abriendo Escalafón Online"
 
-          check_url "Vercel Escalafón"             "https://escalafon-pns.vercel.app/"             "Escalafón de Oficiales"
+          check_url "Vercel Escalafón"             "https://escalafon-online.vercel.app/"             "Escalafón de Oficiales"
 
           check_url "GitHub Pages Revisor"             "https://johngreen017.github.io/apps/revisor-cargo-fiscal/"             "Abriendo Revisor de Cargo Fiscal"
 
