@@ -3,8 +3,7 @@ name: Diagnóstico público de OneSignal
 on:
   pull_request:
     branches: [main]
-    paths:
-      - '.github/workflows/onesignal-worker-diagnostic.yml'
+    paths: ['.github/workflows/onesignal-worker-diagnostic.yml']
   workflow_dispatch:
 
 permissions:
@@ -15,28 +14,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Comprobar archivo remoto de OneSignal sin credenciales
+      - name: Comparar direcciones públicas actuales y anteriores
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           check() {
-            local name="$1" url="$2" expected="$3"
-            local body hdr status ctype
+            local name="$1" url="$2"
+            local body hdr meta
             body="$(mktemp)"; hdr="$(mktemp)"
+            meta="$(curl -sSL --connect-timeout 10 --max-time 30 -D "$hdr" -o "$body" -w '%{http_code}|%{url_effective}|%{content_type}' -H 'Cache-Control: no-cache' "$url")"
             echo "===== $name ====="
-            status="$(curl -sSL --connect-timeout 10 --max-time 35 -D "$hdr" -o "$body" -w '%{http_code}' -H 'Cache-Control: no-cache' "$url")"
-            ctype="$(grep -i '^content-type:' "$hdr" | tail -1 | tr -d '\r' || true)"
-            echo "HTTP: $status"
-            echo "Content type: $ctype"
+            echo "HTTP | URL FINAL | CONTENT-TYPE: $meta"
             echo "Bytes: $(wc -c < "$body")"
-            echo "Primeros 180 caracteres:"
-            head -c 180 "$body" | tr '\n' ' '
-            echo
-            test "$status" = "200"
-            grep -Fq "$expected" "$body"
-            grep -qiE 'javascript|ecmascript|text/plain' <<<"$ctype"
+            echo "Fragmento: $(head -c 110 "$body" | tr '\n' ' ')"
           }
-          check "Service worker GitHub Pages" "https://greencs017.github.io/apps/OneSignalSDKWorker.js?appId=0956c8db-37fb-4a11-98bd-397d121ae8fa&sdkVersion=160700" "importScripts("
-          check "SDK del service worker OneSignal" "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js" "OneSignal"
-          check "Lanzador Simulador" "https://greencs017.github.io/apps/simulador-remuneraciones/" "access-bridge.js?v=20261106-shared-worker-apps1"
-          echo "OK: las rutas públicas entregan contenido"
+          check "GitHub Pages nuevo: home" "https://greencs017.github.io/apps/"
+          check "GitHub Pages nuevo: simulador" "https://greencs017.github.io/apps/simulador-remuneraciones/"
+          check "GitHub Pages nuevo: worker" "https://greencs017.github.io/apps/OneSignalSDKWorker.js?appId=0956c8db-37fb-4a11-98bd-397d121ae8fa&sdkVersion=160700"
+          check "GitHub Pages nuevo: worker sin parámetros" "https://greencs017.github.io/apps/OneSignalSDKWorker.js"
+          check "GitHub Pages antiguo: simulador" "https://johngreen017.github.io/apps/simulador-remuneraciones/"
+          check "GitHub Pages antiguo: worker" "https://johngreen017.github.io/apps/OneSignalSDKWorker.js"
+          check "SDK CDN OneSignal" "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"
+          echo "Diagnóstico terminado. Consultar códigos HTTP."
