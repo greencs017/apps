@@ -35,4 +35,19 @@ jobs:
           check "GitHub Pages antiguo: simulador" "https://johngreen017.github.io/apps/simulador-remuneraciones/"
           check "GitHub Pages antiguo: worker" "https://johngreen017.github.io/apps/OneSignalSDKWorker.js"
           check "SDK CDN OneSignal" "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"
+          check "JavaScript puente público" "https://greencs017.github.io/apps/access-bridge.js"
+          check "Páginas GitHub Pages API" "https://api.github.com/repos/greencs017/apps/pages"
+          check "Pages build latest API" "https://api.github.com/repos/greencs017/apps/pages/builds/latest"
+          echo "===== Versiones publicadas versus main ====="
+          for url in \
+            https://greencs017.github.io/apps/access-bridge.js \
+            https://greencs017.github.io/apps/simulador-remuneraciones/index.html; do
+            body="$(mktemp)"
+            curl -fsSL "$url" -o "$body"
+            if grep -Fq '20261106-shared-worker-apps1' "$body"; then
+              echo "$url: Versión nueva en Pages"
+            else
+              echo "$url: Versión anterior en Pages"
+            fi
+          done
           echo "Diagnóstico terminado. Consultar códigos HTTP."
