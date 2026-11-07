@@ -68,7 +68,8 @@ test('all entrypoints use Vercel and never expose Apps Script URLs',()=>{
  const expected={
    'escalafon-online':'https://escalafon-online.vercel.app/',
    'revisor-cargo-fiscal':'https://revisor-cargo-l5.vercel.app/',
-   'simulador-remuneraciones':'https://simulador-remuneraciones-delta.vercel.app/'
+   'simulador-remuneraciones':'https://simulador-remuneraciones-delta.vercel.app/',
+   'revisor-licencias-medicas':'https://revisor-licencias-medicas.vercel.app/'
  };
  for(const folder of Object.keys(expected)){
    for(const file of ['index.html','windows.html']){

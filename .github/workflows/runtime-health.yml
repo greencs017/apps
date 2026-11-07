@@ -10,6 +10,7 @@ on:
       - 'tests/access-bridge.test.cjs'
       - 'escalafon-online/index.html'
       - 'escalafon-online/windows.html'
+      - 'revisor-licencias-medicas/index.html'
       - 'revisor-cargo-fiscal/index.html'
       - 'revisor-cargo-fiscal/windows.html'
       - 'simulador-remuneraciones/index.html'
@@ -74,3 +75,7 @@ jobs:
           check_url "GitHub Pages Simulador"             "https://greencs017.github.io/apps/simulador-remuneraciones/"             "Abriendo Simulador de Remuneraciones"
 
           check_url "Vercel Simulador"             "https://simulador-remuneraciones-delta.vercel.app/"             "Simulador de Remuneraciones"
+
+          check_url "GitHub Pages Licencias"             "https://greencs017.github.io/apps/revisor-licencias-medicas/"             "Abriendo Revisor de Licencias Médicas"
+
+          check_url "Vercel Licencias"             "https://revisor-licencias-medicas.vercel.app/"             "Revisor de Licencias Médicas"
