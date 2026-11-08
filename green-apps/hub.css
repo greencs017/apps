@@ -64,3 +64,5 @@ details summary{cursor:pointer;font-weight:600}
 .person-foot{margin-top:6px;text-align:right}
 #pushCard .primary{width:100%;margin-top:6px}
 .push-list{margin:6px 0 0;padding-left:18px;font-size:14px;color:var(--muted)}
+.push-key{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.push-key .act{justify-self:start}

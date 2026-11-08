@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=1">
   <link rel="manifest" href="manifest.webmanifest?v=1">
   <title>Green Apps</title>
-  <link rel="stylesheet" href="hub.css?v=3">
+  <link rel="stylesheet" href="hub.css?v=4">
 </head>
 <body>
   <header class="top">
@@ -71,6 +71,12 @@
         <button id="pushTest" type="button" class="link">Enviar una prueba</button>
         <p id="pushStatus" class="note" role="status" aria-live="polite"></p>
         <ul id="pushList" class="push-list"></ul>
+        <form id="pushKeyForm" class="push-key" autocomplete="off">
+          <label for="pushKey">Clave de OneSignal (App API Key)</label>
+          <input id="pushKey" type="password" required minlength="20" maxlength="1000" autocomplete="off" spellcheck="false" placeholder="Pega la clave aquí">
+          <button type="submit" class="act ok">Guardar en las aplicaciones</button>
+          <p class="note">Las cuatro aplicaciones usan la misma cuenta de OneSignal, así que la clave es la misma para todas. Se guarda cifrada en cada aplicación y no se vuelve a mostrar.</p>
+        </form>
       </details>
       <div id="pending"></div>
       <details class="card" id="addPerson">
@@ -93,6 +99,6 @@
     <p class="foot"><button id="refresh" type="button" class="link">Actualizar</button> · <button id="forget" type="button" class="link">Cambiar de cuenta</button></p>
   </main>
   <noscript>Activa JavaScript para usar Green Apps.</noscript>
-  <script src="hub.js?v=3" defer></script>
+  <script src="hub.js?v=4" defer></script>
 </body>
 </html>
