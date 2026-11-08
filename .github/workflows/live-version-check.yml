@@ -118,7 +118,8 @@ jobs:
           for page in "$esc" "$rev" "$sim"; do
             if grep -Fq "Autoriza solicitudes o agrega usuarios directamente" <<<"$page"; then echo "Panel de accesos duplicado"; exit 1; fi
           done
-          curl -fsS -L --connect-timeout 10 --max-time 30 https://greencs017.github.io/apps/green-apps/ | grep -Fq 'id="panel"'
+          hub="$(curl -fsS -L --connect-timeout 10 --max-time 30 https://greencs017.github.io/apps/green-apps/)"
+          grep -Fq 'id="panel"' <<<"$hub"
 
           ! grep -Fq "script.google.com" <<<"$esc"
           ! grep -Fq "script.google.com" <<<"$rev"
