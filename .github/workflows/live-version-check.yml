@@ -116,7 +116,7 @@ jobs:
           echo "===== Administración centralizada en Green Apps ====="
           # Las apps ya no traen su propio panel de accesos: se administra desde Green Apps.
           for page in "$esc" "$rev" "$sim"; do
-            ! grep -Fq "Autoriza solicitudes o agrega usuarios directamente" <<<"$page"
+            if grep -Fq "Autoriza solicitudes o agrega usuarios directamente" <<<"$page"; then echo "Panel de accesos duplicado"; exit 1; fi
           done
           curl -fsS -L --connect-timeout 10 --max-time 30 https://greencs017.github.io/apps/green-apps/ | grep -Fq 'id="panel"'
 
