@@ -59,9 +59,8 @@
     writeDeviceCookie_(key);
     if(!/^[a-f0-9]{64}$/.test(key))throw Error('El identificador guardado del dispositivo no es válido.');
     const ua=navigator.userAgent||'',ipad=/iPad/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-    // Solo el Simulador distingue tablets. Escalafón y Revisor mantienen sus
-    // protocolos actuales para no cambiar vinculaciones ya existentes.
-    const type=appId==='simulador'&&ipad?'tablet':(ipad||/Mobi|Android|iPhone|iPod/i.test(ua)?'mobile':'desktop');
+    // Estructura común: el iPad ocupa el cupo «móvil/tablet» en todas las aplicaciones.
+    const type=ipad||/Mobi|Android|iPhone|iPod/i.test(ua)?'mobile':'desktop';
     return type+':'+key;
   }
   function trustedOrigin(origin){
