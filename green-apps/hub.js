@@ -9,7 +9,7 @@
     { id: 'escalafon', short: 'Escalafón', name: 'Escalafón Online', desc: 'Escalafón, ascensos y retiros', path: '../escalafon-online/',
       icon: '../escalafon-online/icons-v3/icon-192.png', api: 'https://escalafon-online.vercel.app/api/green-apps' },
     { id: 'simulador', short: 'Simulador', name: 'Simulador de Remuneraciones', desc: 'Cálculo de remuneraciones', path: '../simulador-remuneraciones/',
-      icon: '../simulador-remuneraciones/icono-simulador-v6.png', api: 'https://simulador-remuneraciones-delta.vercel.app/api/green-apps', tablet: true },
+      icon: '../simulador-remuneraciones/icono-simulador-v6.png', api: 'https://simulador-remuneraciones-delta.vercel.app/api/green-apps' },
     { id: 'licencias', short: 'Licencias', name: 'Revisor de Licencias Médicas', desc: 'Revisión y cotejo de licencias', path: '../revisor-licencias-medicas/',
       icon: '../revisor-licencias-medicas/icono-licencias-192.png', api: 'https://revisor-licencias-medicas.vercel.app/api/green-apps' },
     { id: 'revisor', short: 'Cargo Fiscal', name: 'Revisor de Cargo Fiscal', desc: 'Revista técnica L5', path: '../revisor-cargo-fiscal/',
@@ -42,7 +42,8 @@
   const ipad = /iPad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const ios = ipad || /iPhone|iPod/i.test(ua);
   const standalone = navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-  const deviceFor = app => (app.tablet && ipad ? 'tablet' : (ipad || /Mobi|Android|iPhone|iPod/i.test(ua) ? 'mobile' : 'desktop')) + ':' + deviceKey();
+  // Estructura común: el iPad ocupa el cupo «móvil/tablet» en todas las aplicaciones.
+  const deviceFor = () => (ipad || /Mobi|Android|iPhone|iPod/i.test(ua) ? 'mobile' : 'desktop') + ':' + deviceKey();
 
   // ---------- Servicio de acceso de cada aplicación ----------
   async function ask(app, body) {
