@@ -16,6 +16,7 @@ on:
       - 'simulador-remuneraciones/**'
       - 'revisor-licencias-medicas/**'
       - 'gastos/**'
+      - 'green-apps/**'
   workflow_dispatch:
 
 permissions:
@@ -47,10 +48,11 @@ jobs:
           test -f index.html
           mkdir -p _site
           cp .nojekyll index.html ./*.js _site/
-          for dir in escalafon-online revisor-cargo-fiscal simulador-remuneraciones revisor-licencias-medicas gastos; do
+          for dir in escalafon-online revisor-cargo-fiscal simulador-remuneraciones revisor-licencias-medicas gastos green-apps; do
             cp -R "$dir" "_site/$dir"
           done
           test -f _site/OneSignalSDKWorker.js
+          test -f _site/green-apps/index.html
           echo "Se prepara la publicación de: $(find _site -type f | wc -l) archivos públicos"
       - name: Configurar Pages
         uses: actions/configure-pages@v5

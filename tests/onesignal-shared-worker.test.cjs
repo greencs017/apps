@@ -12,7 +12,7 @@ test('OneSignal usa el mismo worker accesible bajo /apps/ en las tres aplicacion
   for(const dir of ['simulador-remuneraciones','escalafon-online','revisor-cargo-fiscal']){
     for(const page of ['index.html','windows.html']){
       const html=fs.readFileSync(path.join(__dirname,'..',dir,page),'utf8');
-      assert.match(html,/access-bridge\.js\?v=20261106-shared-worker-apps1/);
+      assert.match(html,/access-bridge\.js\?v=20261108-greenapps1/);
     }
   }
 });
