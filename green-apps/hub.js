@@ -322,8 +322,8 @@
       try {
         const r = await ask(app, { op: 'admin', accion: 'registrarPush', subscriptionId: id });
         if (r.hecho && r.apiConfigurada) { ok++; text = 'activas'; }
-        else if (r.hecho) text = 'registrado, pero falta configurar la App API Key de OneSignal en la aplicación';
-        else text = 'falta configurar la App API Key de OneSignal en la aplicación';
+        else if (r.hecho) text = 'registrado, pero falta la clave de OneSignal (guárdala más abajo)';
+        else text = 'falta la clave de OneSignal (guárdala más abajo)';
       } catch (e) { text = e.message; }
       list.appendChild(el('li', '', app.short + ': ' + text));
     }
@@ -354,6 +354,21 @@
     const list = $('pushList'); list.textContent = '';
     out.forEach(t => list.appendChild(el('li', '', t)));
     pushStatus('Resultado de la prueba:');
+  };
+
+  $('pushKeyForm').onsubmit = async e => {
+    e.preventDefault();
+    const apiKey = $('pushKey').value.trim();
+    const btn = e.submitter || $('pushKeyForm').querySelector('button'); btn.disabled = true;
+    pushStatus('Guardando la clave…');
+    const list = $('pushList'); list.textContent = '';
+    let ok = 0;
+    for (const app of panelApps) {
+      try { await ask(app, { op: 'admin', accion: 'configurarClavePush', apiKey }); ok++; list.appendChild(el('li', '', app.short + ': clave guardada')); }
+      catch (err) { list.appendChild(el('li', '', app.short + ': ' + err.message)); }
+    }
+    $('pushKey').value = ''; btn.disabled = false;
+    pushStatus(ok === panelApps.length ? 'Clave guardada en las ' + ok + ' aplicaciones. Ahora pulsa «Activar notificaciones» y luego «Enviar una prueba».' : 'Clave guardada en ' + ok + ' de ' + panelApps.length + ' aplicaciones.');
   };
 
   $('refresh').onclick = () => refresh();
