@@ -108,6 +108,8 @@
     $('otherApps').hidden = !otherCount;
     $('login').hidden = !(recognized === 0 || pendingLink > 0 || showLogin);
     const adminApps = results.filter(r => r.data && r.data.owner && r.data.reconocido).map(r => r.app);
+    // Confirmación periódica con Google (cada 30 días): se abre directamente la opción del administrador.
+    if (results.some(r => r.data && r.data.owner && !r.data.reconocido)) { $('login').hidden = false; document.querySelector('details.owner').open = true; }
     $('openPanel').hidden = !adminApps.length;
     if (adminApps.length) loadPanel(adminApps, true);
     // Desde un aviso (…/green-apps/?panel=1) se abre directamente el panel.
