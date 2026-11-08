@@ -44,7 +44,7 @@ jobs:
             https://greencs017.github.io/apps/simulador-remuneraciones/index.html; do
             body="$(mktemp)"
             curl -fsSL "$url" -o "$body"
-            if grep -Fq '20261108-greenapps1' "$body"; then
+            if grep -Fq '20261108-seguridad1' "$body"; then
               echo "$url: Versión nueva en Pages"
             else
               echo "$url: Versión anterior en Pages"
