@@ -82,7 +82,20 @@
       script.onerror=()=>{clearTimeout(t);reject(Error('No fue posible cargar el acceso de Google.'));};document.head.appendChild(script);
     });return googlePromise;
   }
+  // Green Apps: si el administrador ya confirmó Google en el portal durante esta sesión, se reutiliza
+  // esa credencial (una vez por aplicación y mientras siga vigente) en vez de volver a pedirla.
+  function sharedGoogleCredential(){
+    try{
+      const usedKey='greenapps.google.used.'+appId;
+      const saved=JSON.parse(sessionStorage.getItem('greenapps.google.v1')||'null');
+      if(!saved||typeof saved.credential!=='string'||!(saved.exp*1000>Date.now()+60000)||sessionStorage.getItem(usedKey)===saved.credential.slice(-24))return '';
+      sessionStorage.setItem(usedKey,saved.credential.slice(-24));
+      return saved.credential;
+    }catch(_){return '';}
+  }
   async function showGoogle(){
+    const shared=sharedGoogleCredential();
+    if(shared){transition('GOOGLE_VERIFYING','Green Apps');send({type:appId==='escalafon'?'escalafon-google-credential':'apps-admin-google-credential',credential:shared});return;}
     transition('GOOGLE_REQUIRED');googleLayer.hidden=false;status.textContent='Preparando Google…';
     try{
       await loadGoogle();
@@ -225,6 +238,21 @@
     }
   });
   document.getElementById('retry').onclick=()=>location.reload();
+  // Green Apps: si la aplicación se abrió desde el portal, un botón pequeño permite volver a él.
+  // Abierta por su propio ícono o enlace, la aplicación funciona exactamente igual que antes.
+  (function greenAppsBack(){
+    let via=false;
+    try{
+      if(new URLSearchParams(location.search||'').get('via')==='green-apps')sessionStorage.setItem('greenapps.via','1');
+      via=sessionStorage.getItem('greenapps.via')==='1';
+    }catch(_){}
+    if(!via||!document.body)return;
+    const b=document.createElement('a');
+    b.id='greenAppsBack';b.href='../green-apps/';b.title='Volver a Green Apps';b.setAttribute('aria-label','Volver a Green Apps');
+    b.style.cssText='position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:30;width:42px;height:42px;border-radius:12px;'
+      +'background:#173d2b url(../green-apps/icon-192.png?v=1) center/cover;box-shadow:0 3px 12px #0005;opacity:.92;border:2px solid #fff';
+    document.body.appendChild(b);
+  })();
   app.addEventListener('load',()=>log('IFRAME_LOADED'));
   log('LAUNCHER_LOADED');
   try{
