@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=1">
   <link rel="manifest" href="manifest.webmanifest?v=1">
   <title>Green Apps</title>
-  <link rel="stylesheet" href="hub.css?v=2">
+  <link rel="stylesheet" href="hub.css?v=3">
 </head>
 <body>
   <header class="top">
@@ -64,6 +64,14 @@
       <button id="closePanel" type="button" class="link">← Volver a mis aplicaciones</button>
       <h2 id="panelTitle">Panel de autorizaciones</h2>
       <p id="panelStatus" class="status" role="status" aria-live="polite"></p>
+      <details class="card" id="pushCard">
+        <summary>Notificaciones</summary>
+        <p class="note">Activa una sola vez los avisos de las cuatro aplicaciones en este dispositivo. Al tocar un aviso se abre este panel.</p>
+        <button id="pushOn" type="button" class="primary" disabled>Activar notificaciones</button>
+        <button id="pushTest" type="button" class="link">Enviar una prueba</button>
+        <p id="pushStatus" class="note" role="status" aria-live="polite"></p>
+        <ul id="pushList" class="push-list"></ul>
+      </details>
       <div id="pending"></div>
       <details class="card" id="addPerson">
         <summary>Agregar persona</summary>
@@ -85,6 +93,6 @@
     <p class="foot"><button id="refresh" type="button" class="link">Actualizar</button> · <button id="forget" type="button" class="link">Cambiar de cuenta</button></p>
   </main>
   <noscript>Activa JavaScript para usar Green Apps.</noscript>
-  <script src="hub.js?v=2" defer></script>
+  <script src="hub.js?v=3" defer></script>
 </body>
 </html>

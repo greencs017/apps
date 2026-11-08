@@ -41,6 +41,7 @@
   const ua = navigator.userAgent || '';
   const ipad = /iPad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const ios = ipad || /iPhone|iPod/i.test(ua);
+  const standalone = navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
   const deviceFor = app => (app.tablet && ipad ? 'tablet' : (ipad || /Mobi|Android|iPhone|iPod/i.test(ua) ? 'mobile' : 'desktop')) + ':' + deviceKey();
 
   // ---------- Servicio de acceso de cada aplicación ----------
@@ -109,6 +110,10 @@
     const adminApps = results.filter(r => r.data && r.data.owner && r.data.reconocido).map(r => r.app);
     $('openPanel').hidden = !adminApps.length;
     if (adminApps.length) loadPanel(adminApps, true);
+    // Desde un aviso (…/green-apps/?panel=1) se abre directamente el panel.
+    if (adminApps.length && !panelOpenedFromLink && new URLSearchParams(location.search).get('panel') === '1') {
+      panelOpenedFromLink = true; $('openPanel').click();
+    }
     if (!mine) status(failed === APPS.length ? 'No fue posible revisar tus accesos. Revisa tu conexión y pulsa Actualizar.' : 'Aún no tienes aplicaciones vinculadas en este dispositivo. Ingresa tu correo para continuar.', failed === APPS.length);
     else status(mine === 1 ? 'Tienes 1 aplicación.' : 'Tienes ' + mine + ' aplicaciones.');
   }
@@ -171,6 +176,7 @@
 
   // ---------- Panel único de autorizaciones (solo el administrador) ----------
   // Cada aplicación valida en su servidor que este dispositivo sea del administrador y aplica sus propias reglas.
+  let panelOpenedFromLink = false;
   let panelApps = [], people = new Map(), panelErrors = [];
   const STATE_TEXT = { AUTORIZADO: 'Autorizado', PENDIENTE: 'Pendiente', RECHAZADO: 'Rechazado', SIN: 'Sin acceso' };
   const DEVICE_TEXT = { mobile: 'móvil', tablet: 'tablet', desktop: 'computador' };
@@ -259,7 +265,7 @@
   }
   $('openPanel').onclick = () => {
     $('panel').hidden = false; ['apps', 'login', 'otherApps', 'openPanel', 'status'].forEach(id => { $(id).hidden = true; });
-    renderPanel(); loadPanel(panelApps); window.scrollTo(0, 0);
+    renderPanel(); loadPanel(panelApps); preparePush(); window.scrollTo(0, 0);
   };
   $('closePanel').onclick = () => { $('panel').hidden = true; $('apps').hidden = false; $('status').hidden = false; refresh(); };
   $('search').oninput = () => renderPanel();
@@ -277,10 +283,82 @@
     else { pstatus(nombre + ' quedó autorizado. Puede ingresar en Green Apps con su correo.'); $('addForm').reset(); $('addPerson').open = false; }
   };
 
+  // ---------- Notificaciones del administrador (OneSignal, un solo permiso para las cuatro aplicaciones) ----------
+  // El permiso se pide en esta página principal y desde una pulsación real (requisito de iPhone/iPad).
+  const ONESIGNAL_APP_ID = '0956c8db-37fb-4a11-98bd-397d121ae8fa';
+  let oneSignal = null, pushPromise = null;
+  const pushStatus = t => { $('pushStatus').textContent = t || ''; };
+  function loadPush() {
+    if (pushPromise) return pushPromise;
+    pushPromise = new Promise((resolve, reject) => {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async sdk => {
+        try { await sdk.init({ appId: ONESIGNAL_APP_ID, serviceWorkerParam: { scope: '/apps/' }, serviceWorkerPath: '/apps/OneSignalSDKWorker.js' }); oneSignal = sdk; resolve(sdk); }
+        catch (e) { reject(e); }
+      });
+      const sc = document.createElement('script'); sc.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'; sc.defer = true;
+      sc.onerror = () => reject(Error('No cargaron las notificaciones. Revisa tu conexión.'));
+      document.head.appendChild(sc);
+    });
+    return pushPromise;
+  }
+  async function preparePush() {
+    const btn = $('pushOn');
+    if (ios && !standalone) { pushStatus('En iPhone o iPad, abre Green Apps desde su ícono en la pantalla de inicio para activar notificaciones.'); return; }
+    try {
+      const sdk = await Promise.race([loadPush(), new Promise((_, rej) => setTimeout(() => rej(Error('Las notificaciones no respondieron. Cierra y vuelve a abrir Green Apps.')), 15000))]);
+      if (!sdk.Notifications.isPushSupported()) { pushStatus('Este navegador no admite notificaciones.'); return; }
+      const on = sdk.Notifications.permission && sdk.User.PushSubscription.optedIn && sdk.User.PushSubscription.id;
+      btn.textContent = on ? 'Volver a registrar este dispositivo' : 'Activar notificaciones';
+      btn.disabled = false;
+      if (on && !$('pushStatus').textContent) pushStatus('Las notificaciones están activas en este dispositivo.');
+    } catch (e) { pushStatus(e.message); }
+  }
+  async function registerEverywhere(id) {
+    const list = $('pushList'); list.textContent = '';
+    let ok = 0;
+    for (const app of panelApps) {
+      let text;
+      try {
+        const r = await ask(app, { op: 'admin', accion: 'registrarPush', subscriptionId: id });
+        if (r.hecho && r.apiConfigurada) { ok++; text = 'activas'; }
+        else if (r.hecho) text = 'registrado, pero falta configurar la App API Key de OneSignal en la aplicación';
+        else text = 'falta configurar la App API Key de OneSignal en la aplicación';
+      } catch (e) { text = e.message; }
+      list.appendChild(el('li', '', app.short + ': ' + text));
+    }
+    pushStatus(ok === panelApps.length ? 'Listo: recibirás los avisos de las ' + ok + ' aplicaciones.' : 'Avisos activos en ' + ok + ' de ' + panelApps.length + ' aplicaciones.');
+  }
+  $('pushOn').onclick = () => {
+    if (!oneSignal) return;
+    $('pushOn').disabled = true; pushStatus('Solicitando permiso al dispositivo…');
+    let req;
+    try { req = oneSignal.Notifications.requestPermission(); } catch (e) { pushStatus(e.message); $('pushOn').disabled = false; return; }
+    Promise.resolve(req).then(async () => {
+      if (!oneSignal.Notifications.permission) throw Error('El dispositivo no concedió el permiso. Revisa Ajustes › Notificaciones.');
+      await oneSignal.User.PushSubscription.optIn();
+      let id = oneSignal.User.PushSubscription.id;
+      for (let i = 0; !id && i < 20; i++) { await new Promise(r => setTimeout(r, 500)); id = oneSignal.User.PushSubscription.id; }
+      if (!id) throw Error('No se obtuvo el registro del dispositivo. Reintenta.');
+      pushStatus('Registrando este dispositivo en las aplicaciones…');
+      await registerEverywhere(id);
+    }).catch(e => pushStatus(e.message || 'No fue posible activar las notificaciones.')).finally(() => { $('pushOn').disabled = false; });
+  };
+  $('pushTest').onclick = async () => {
+    pushStatus('Enviando prueba…');
+    const out = [];
+    for (const app of panelApps) {
+      try { const r = await ask(app, { op: 'admin', accion: 'probarPush' }); out.push(app.short + ': ' + (r.hecho ? 'enviada' : 'no enviada')); }
+      catch (e) { out.push(app.short + ': ' + e.message); }
+    }
+    const list = $('pushList'); list.textContent = '';
+    out.forEach(t => list.appendChild(el('li', '', t)));
+    pushStatus('Resultado de la prueba:');
+  };
+
   $('refresh').onclick = () => refresh();
   $('forget').onclick = () => { store.set(EMAIL_KEY, ''); $('email').value = ''; showLogin = true; $('login').hidden = false; $('email').focus(); };
   $('email').value = store.get(EMAIL_KEY);
-  const standalone = navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
   $('installHint').hidden = !(ios && !standalone);
   try { sessionStorage.removeItem('greenapps.via'); } catch (_) {}
   window.addEventListener('pageshow', e => { if (e.persisted) refresh(); });
