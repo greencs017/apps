@@ -91,5 +91,6 @@ test('Escalafón oficial abre la versión sin Apps Script y el puente acepta amb
  }
  assert.ok(!fs.existsSync(path.join(__dirname,'..','escalafon-online-beta')),'el lanzador de prueba se retiró');
  const bridge=fs.readFileSync(path.join(__dirname,'..','access-bridge.js'),'utf8');
- assert.ok(bridge.includes("'https://escalafon-pns.vercel.app','https://escalafon-online.vercel.app'"));
+ assert.ok(bridge.includes("escalafon:['https://escalafon-online.vercel.app']"));
+ assert.ok(!bridge.includes('escalafon-pns.vercel.app'),'el origen retirado ya no se acepta');
 });

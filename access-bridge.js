@@ -7,10 +7,9 @@
   const prefix=appId==='escalafon'?'escalafon-':'apps-'+appId+'-';
   const logoutKey='apps.'+appId+'.signed-out.v1';
   const trace=document.getElementById('bridgeTrace'),summary=document.getElementById('bridgeSummary');
-  // Orígenes permitidos por aplicación. Escalafón admite la versión actual y
-  // la nueva versión sin Apps Script (escalafon-online) durante la transición.
+  // Orígenes permitidos por aplicación (solo los despliegues vigentes).
   const appOrigins={
-    escalafon:['https://escalafon-pns.vercel.app','https://escalafon-online.vercel.app'],
+    escalafon:['https://escalafon-online.vercel.app'],
     revisor:['https://revisor-cargo-l5.vercel.app'],
     simulador:['https://simulador-remuneraciones-delta.vercel.app'],
     gastos:['https://mis-gastos-ecru.vercel.app'],
