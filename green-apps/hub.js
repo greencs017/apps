@@ -6,13 +6,13 @@
 (() => {
   'use strict';
   const APPS = [
-    { id: 'escalafon', name: 'Escalafón Online', desc: 'Escalafón, ascensos y retiros', path: '../escalafon-online/',
+    { id: 'escalafon', short: 'Escalafón', name: 'Escalafón Online', desc: 'Escalafón, ascensos y retiros', path: '../escalafon-online/',
       icon: '../escalafon-online/icons-v3/icon-192.png', api: 'https://escalafon-online.vercel.app/api/green-apps' },
-    { id: 'simulador', name: 'Simulador de Remuneraciones', desc: 'Cálculo de remuneraciones', path: '../simulador-remuneraciones/',
+    { id: 'simulador', short: 'Simulador', name: 'Simulador de Remuneraciones', desc: 'Cálculo de remuneraciones', path: '../simulador-remuneraciones/',
       icon: '../simulador-remuneraciones/icono-simulador-v6.png', api: 'https://simulador-remuneraciones-delta.vercel.app/api/green-apps', tablet: true },
-    { id: 'licencias', name: 'Revisor de Licencias Médicas', desc: 'Revisión y cotejo de licencias', path: '../revisor-licencias-medicas/',
+    { id: 'licencias', short: 'Licencias', name: 'Revisor de Licencias Médicas', desc: 'Revisión y cotejo de licencias', path: '../revisor-licencias-medicas/',
       icon: '../revisor-licencias-medicas/icono-licencias-192.png', api: 'https://revisor-licencias-medicas.vercel.app/api/green-apps' },
-    { id: 'revisor', name: 'Revisor de Cargo Fiscal', desc: 'Revista técnica L5', path: '../revisor-cargo-fiscal/',
+    { id: 'revisor', short: 'Cargo Fiscal', name: 'Revisor de Cargo Fiscal', desc: 'Revista técnica L5', path: '../revisor-cargo-fiscal/',
       icon: '../revisor-cargo-fiscal/icons-v6/icon-192.png', api: 'https://revisor-cargo-l5.vercel.app/api/green-apps' }
   ];
   const CLIENT_ID = '892491045559-mt2b7iabv71djbu6icf6rpl2a2fa90e8.apps.googleusercontent.com';
@@ -76,7 +76,9 @@
     return b;
   }
   const LABEL = { PENDIENTE: 'Solicitud pendiente de aprobación', RECHAZADO: 'Solicitud rechazada', SIN_ACCESO: 'Sin acceso · Solicitar' };
+  let lastResults = [];
   function render(results) {
+    lastResults = results;
     const grid = $('apps'), others = $('othersList');
     grid.textContent = ''; others.textContent = '';
     const known = new Set(store.get(KNOWN_KEY).split(',').filter(Boolean));
@@ -104,6 +106,9 @@
     $('greeting').textContent = name ? 'Hola, ' + (name === 'Administrador' ? 'administrador' : name.split(' ')[0]) : 'Tus aplicaciones en un solo lugar';
     $('otherApps').hidden = !otherCount;
     $('login').hidden = !(recognized === 0 || pendingLink > 0 || showLogin);
+    const adminApps = results.filter(r => r.data && r.data.owner && r.data.reconocido).map(r => r.app);
+    $('openPanel').hidden = !adminApps.length;
+    if (adminApps.length) loadPanel(adminApps, true);
     if (!mine) status(failed === APPS.length ? 'No fue posible revisar tus accesos. Revisa tu conexión y pulsa Actualizar.' : 'Aún no tienes aplicaciones vinculadas en este dispositivo. Ingresa tu correo para continuar.', failed === APPS.length);
     else status(mine === 1 ? 'Tienes 1 aplicación.' : 'Tienes ' + mine + ' aplicaciones.');
   }
@@ -163,6 +168,114 @@
       $('googleStatus').textContent = '';
     } catch (error) { $('googleStatus').textContent = error.message; }
   });
+
+  // ---------- Panel único de autorizaciones (solo el administrador) ----------
+  // Cada aplicación valida en su servidor que este dispositivo sea del administrador y aplica sus propias reglas.
+  let panelApps = [], people = new Map(), panelErrors = [];
+  const STATE_TEXT = { AUTORIZADO: 'Autorizado', PENDIENTE: 'Pendiente', RECHAZADO: 'Rechazado', SIN: 'Sin acceso' };
+  const DEVICE_TEXT = { mobile: 'móvil', tablet: 'tablet', desktop: 'computador' };
+  const pstatus = (t, e = false) => { $('panelStatus').textContent = t || ''; $('panelStatus').classList.toggle('error', !!e); };
+  async function loadPanel(apps, quiet = false) {
+    panelApps = apps;
+    if (!quiet) pstatus('Cargando autorizaciones…');
+    const lists = await Promise.all(apps.map(app => ask(app, { op: 'admin', accion: 'listar' }).then(d => ({ app, usuarios: d.usuarios }), e => ({ app, error: e.message }))));
+    people = new Map(); panelErrors = lists.filter(l => l.error);
+    for (const l of lists) for (const u of l.usuarios || []) {
+      const key = String(u.email).toLowerCase();
+      const p = people.get(key) || { email: key, nombre: '', apps: {} };
+      if (!p.nombre && u.nombre) p.nombre = u.nombre;
+      p.apps[l.app.id] = u; people.set(key, p);
+    }
+    const pending = [...people.values()].filter(needsAttention).length;
+    $('panelBadge').hidden = !pending; $('panelBadge').textContent = pending;
+    if (!$('panel').hidden) renderPanel();
+    if (!quiet) pstatus(panelErrors.length ? 'No respondió: ' + panelErrors.map(l => l.app.short).join(', ') + '.' : people.size + ' persona(s) registradas.', !!panelErrors.length);
+  }
+  const needsAttention = p => Object.values(p.apps).some(u => u.estado === 'PENDIENTE' || (u.pendientes || []).length);
+  function action(label, cls, fn, confirmText) {
+    const b = el('button', 'act' + (cls ? ' ' + cls : ''), label); b.type = 'button';
+    b.onclick = async () => {
+      if (confirmText && !confirm(confirmText)) return;
+      document.querySelectorAll('#panel .act').forEach(x => { x.disabled = true; });
+      pstatus('Guardando…');
+      try { await fn(); await loadPanel(panelApps); pstatus('Listo.'); }
+      catch (e) { pstatus(e.message, true); renderPanel(); }
+    };
+    return b;
+  }
+  async function adminDo(app, accion, extra) { await ask(app, { op: 'admin', accion, ...extra }); }
+  function personCard(p) {
+    const box = el('div', 'person' + (needsAttention(p) ? ' attention' : ''));
+    const head = el('div', 'person-head');
+    head.append(el('strong', '', p.nombre || p.email), el('small', '', p.email));
+    box.appendChild(head);
+    for (const app of panelApps) {
+      const u = p.apps[app.id], estado = u ? u.estado : 'SIN';
+      const row = el('div', 'app-row');
+      row.append(el('span', 'app-name', app.short), el('span', 'chip ' + estado, STATE_TEXT[estado] || estado));
+      if (u && estado === 'AUTORIZADO') {
+        const bound = Object.entries(u.dispositivos || {}).filter(([, v]) => v).map(([k]) => DEVICE_TEXT[k] || k);
+        row.appendChild(el('span', 'devices', bound.length ? 'Vinculado: ' + bound.join(', ') : 'Sin dispositivo vinculado'));
+      }
+      const nombre = p.nombre;
+      if (estado !== 'AUTORIZADO') row.appendChild(action('Autorizar', 'ok', () => adminDo(app, 'autorizar', { email: p.email, nombre })));
+      if (estado === 'PENDIENTE') row.appendChild(action('Rechazar', 'bad', () => adminDo(app, 'rechazar', { email: p.email })));
+      if (estado === 'AUTORIZADO') {
+        for (const tipo of u.pendientes || []) {
+          row.appendChild(action('Aprobar ' + (DEVICE_TEXT[tipo] || tipo) + ' nuevo', 'ok', () => adminDo(app, 'aprobarDispositivo', { email: p.email, tipo })));
+          row.appendChild(action('No aprobar', 'bad', () => adminDo(app, 'rechazarDispositivo', { email: p.email, tipo })));
+        }
+        if (Object.values(u.dispositivos || {}).some(Boolean))
+          row.appendChild(action('Restablecer dispositivos', '', () => adminDo(app, 'restablecer', { email: p.email }),
+            'Se desvincularán los dispositivos de ' + (p.nombre || p.email) + ' en ' + app.short + '. Deberá volver a ingresar. ¿Continuar?'));
+        row.appendChild(action('Quitar acceso', 'bad', () => adminDo(app, 'rechazar', { email: p.email }),
+          '¿Quitar el acceso de ' + (p.nombre || p.email) + ' a ' + app.short + '?'));
+      }
+      box.appendChild(row);
+    }
+    const foot = el('div', 'person-foot');
+    foot.appendChild(action('Eliminar de todas', 'bad', async () => {
+      for (const app of panelApps) if (p.apps[app.id]) await adminDo(app, 'eliminar', { email: p.email });
+    }, '¿Eliminar a ' + (p.nombre || p.email) + ' de todas las aplicaciones? Deberá solicitar acceso de nuevo.'));
+    box.appendChild(foot);
+    return box;
+  }
+  function renderPanel() {
+    const all = [...people.values()].sort((a, b) => (a.nombre || a.email).localeCompare(b.nombre || b.email, 'es'));
+    const pend = all.filter(needsAttention);
+    const pbox = $('pending'); pbox.textContent = '';
+    if (pend.length) { pbox.appendChild(el('h3', '', 'Solicitudes por revisar (' + pend.length + ')')); pend.forEach(p => pbox.appendChild(personCard(p))); }
+    const q = $('search').value.trim().toLowerCase();
+    const list = $('people'); list.textContent = '';
+    const shown = all.filter(p => !needsAttention(p) && (!q || (p.nombre + ' ' + p.email).toLowerCase().includes(q)));
+    shown.forEach(p => list.appendChild(personCard(p)));
+    if (!shown.length) list.appendChild(el('p', 'note', q ? 'Nadie coincide con la búsqueda.' : 'No hay más personas registradas.'));
+    const fs = $('addApps');
+    fs.querySelectorAll('label').forEach(x => x.remove());
+    for (const app of panelApps) {
+      const l = el('label'), c = el('input'); c.type = 'checkbox'; c.value = app.id; c.checked = true;
+      l.append(c, document.createTextNode(app.name)); fs.appendChild(l);
+    }
+  }
+  $('openPanel').onclick = () => {
+    $('panel').hidden = false; ['apps', 'login', 'otherApps', 'openPanel', 'status'].forEach(id => { $(id).hidden = true; });
+    renderPanel(); loadPanel(panelApps); window.scrollTo(0, 0);
+  };
+  $('closePanel').onclick = () => { $('panel').hidden = true; $('apps').hidden = false; $('status').hidden = false; refresh(); };
+  $('search').oninput = () => renderPanel();
+  $('addForm').onsubmit = async e => {
+    e.preventDefault();
+    const nombre = $('addName').value.trim(), email = $('addEmail').value.trim().toLowerCase();
+    const ids = [...$('addApps').querySelectorAll('input:checked')].map(c => c.value);
+    if (!ids.length) { pstatus('Elige al menos una aplicación.', true); return; }
+    pstatus('Autorizando…');
+    const fails = [];
+    for (const app of panelApps.filter(a => ids.includes(a.id)))
+      try { await adminDo(app, 'autorizar', { email, nombre }); } catch (err) { fails.push(app.short + ': ' + err.message); }
+    await loadPanel(panelApps);
+    if (fails.length) pstatus(fails.join(' · '), true);
+    else { pstatus(nombre + ' quedó autorizado. Puede ingresar en Green Apps con su correo.'); $('addForm').reset(); $('addPerson').open = false; }
+  };
 
   $('refresh').onclick = () => refresh();
   $('forget').onclick = () => { store.set(EMAIL_KEY, ''); $('email').value = ''; showLogin = true; $('login').hidden = false; $('email').focus(); };

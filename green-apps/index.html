@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=1">
   <link rel="manifest" href="manifest.webmanifest?v=1">
   <title>Green Apps</title>
-  <link rel="stylesheet" href="hub.css?v=1">
+  <link rel="stylesheet" href="hub.css?v=2">
 </head>
 <body>
   <header class="top">
@@ -27,6 +27,11 @@
 
   <main>
     <p id="status" class="status" role="status" aria-live="polite">Revisando tus accesos…</p>
+
+    <button id="openPanel" type="button" class="card panel-open" hidden>
+      <span><strong>Panel de autorizaciones</strong><small>Autoriza personas y elige sus aplicaciones desde un solo lugar</small></span>
+      <span id="panelBadge" class="badge" hidden></span>
+    </button>
 
     <section aria-labelledby="misApps">
       <h2 id="misApps" class="visually-hidden">Mis aplicaciones</h2>
@@ -55,10 +60,31 @@
       <div id="othersList" class="others-list"></div>
     </details>
 
+    <section id="panel" hidden aria-labelledby="panelTitle">
+      <button id="closePanel" type="button" class="link">← Volver a mis aplicaciones</button>
+      <h2 id="panelTitle">Panel de autorizaciones</h2>
+      <p id="panelStatus" class="status" role="status" aria-live="polite"></p>
+      <div id="pending"></div>
+      <details class="card" id="addPerson">
+        <summary>Agregar persona</summary>
+        <form id="addForm">
+          <label for="addName">Nombre y apellido</label>
+          <input id="addName" required minlength="3" maxlength="100" autocomplete="off">
+          <label for="addEmail">Correo</label>
+          <input id="addEmail" type="email" required maxlength="254" autocomplete="off" placeholder="Correo de la persona">
+          <fieldset id="addApps" class="apps-check"><legend>Aplicaciones que podrá usar</legend></fieldset>
+          <button type="submit" class="primary">Autorizar</button>
+        </form>
+      </details>
+      <h3 class="people-title">Personas</h3>
+      <input id="search" type="search" placeholder="Buscar por nombre o correo" aria-label="Buscar persona">
+      <div id="people"></div>
+    </section>
+
     <p id="installHint" class="note install" hidden>Para instalar Green Apps en tu iPhone o iPad: pulsa <strong>Compartir</strong> y luego <strong>Agregar a inicio</strong>.</p>
     <p class="foot"><button id="refresh" type="button" class="link">Actualizar</button> · <button id="forget" type="button" class="link">Cambiar de cuenta</button></p>
   </main>
   <noscript>Activa JavaScript para usar Green Apps.</noscript>
-  <script src="hub.js?v=1" defer></script>
+  <script src="hub.js?v=2" defer></script>
 </body>
 </html>
