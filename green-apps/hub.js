@@ -15,6 +15,10 @@
     { id: 'revisor', short: 'Cargo Fiscal', name: 'Revisor de Cargo Fiscal', desc: 'Revista técnica L5', path: '../revisor-cargo-fiscal/',
       icon: '../revisor-cargo-fiscal/icons-v6/icon-192.png', api: 'https://revisor-cargo-l5.vercel.app/api/green-apps' }
   ];
+  // Aplicaciones de libre acceso: se muestran a todos, sin revisar autorización ni pedir correo.
+  const FREE_APPS = [
+    { id: 'academia-fight', name: 'Academia Fight', desc: 'Juego de peleas', path: '../academia-fight/', icon: '../academia-fight/icon-192.png?v=1' }
+  ];
   const CLIENT_ID = '892491045559-mt2b7iabv71djbu6icf6rpl2a2fa90e8.apps.googleusercontent.com';
   const EMAIL_KEY = 'greenapps.email.v1', KNOWN_KEY = 'greenapps.authorized.v1', GOOGLE_KEY = 'greenapps.google.v1';
   const DEVICE_STORAGE_KEY = 'apps.admin.device.v1', DEVICE_COOKIE_KEY = 'apps_admin_device_v1';
@@ -374,11 +378,19 @@
     pushStatus(ok === panelApps.length ? 'Clave guardada en las ' + ok + ' aplicaciones. Ahora pulsa «Activar notificaciones» y luego «Enviar una prueba».' : 'Clave guardada en ' + ok + ' de ' + panelApps.length + ' aplicaciones.');
   };
 
+  function renderFree() {
+    const list = $('freeList');
+    list.textContent = '';
+    FREE_APPS.forEach(app => list.appendChild(card(app, 'Libre acceso', false)));
+    $('freeApps').hidden = !FREE_APPS.length;
+  }
+
   $('refresh').onclick = () => refresh();
   $('forget').onclick = () => { store.set(EMAIL_KEY, ''); $('email').value = ''; showLogin = true; $('login').hidden = false; $('email').focus(); };
   $('email').value = store.get(EMAIL_KEY);
   $('installHint').hidden = !(ios && !standalone);
   try { sessionStorage.removeItem('greenapps.via'); } catch (_) {}
   window.addEventListener('pageshow', e => { if (e.persisted) refresh(); });
+  renderFree();
   refresh();
 })();

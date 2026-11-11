@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=1">
   <link rel="manifest" href="manifest.webmanifest?v=1">
   <title>Green Apps</title>
-  <link rel="stylesheet" href="hub.css?v=4">
+  <link rel="stylesheet" href="hub.css?v=5">
 </head>
 <body>
   <header class="top">
@@ -37,6 +37,11 @@
     <section aria-labelledby="misApps">
       <h2 id="misApps" class="visually-hidden">Mis aplicaciones</h2>
       <div id="apps" class="grid"></div>
+    </section>
+
+    <section id="freeApps" aria-labelledby="libreAcceso" hidden>
+      <h2 id="libreAcceso" class="section-title">Libre acceso</h2>
+      <div id="freeList" class="grid"></div>
     </section>
 
     <section id="login" class="card login" hidden>
@@ -100,6 +105,6 @@
     <p class="foot"><button id="refresh" type="button" class="link">Actualizar</button> · <button id="forget" type="button" class="link">Cambiar de cuenta</button></p>
   </main>
   <noscript>Activa JavaScript para usar Green Apps.</noscript>
-  <script src="hub.js?v=6" defer></script>
+  <script src="hub.js?v=7" defer></script>
 </body>
 </html>

@@ -60,6 +60,7 @@ h1 .vs{color:#fff;font-size:.6em;vertical-align:middle}
     <button class="btn alt" data-mode="2">2 JUGADORES</button>
   </div>
   <button class="btn alt" id="stageBtn" style="background:#3a2a1a">ESCENARIO: ACADEMIA</button>
+  <a id="hubBtn" class="btn hidden" href="../green-apps/" style="text-decoration:none;background:#1d5c3a">← GREEN APPS</a>
   <div class="sub">P1: WASD mover · S bloquear · F puño · G patada · R especial<br>P2: Flechas · ↓ bloquear · K puño · L patada · O especial<br>Celular: botones en pantalla (gíralo horizontal)</div>
 </div>
 
@@ -812,6 +813,7 @@ function render(){
   if(game.state==='select')drawPreviews();
 }
 
+try{const fromHub=new URLSearchParams(location.search).get('via')==='green-apps'||sessionStorage.getItem('greenapps.via')==='1';if(fromHub){sessionStorage.setItem('greenapps.via','1');$('hubBtn').classList.remove('hidden')}}catch(e){}
 demo();
 let last=performance.now(),acc=0;const STEP=1000/60;
 function loop(now){acc+=Math.min(100,now-last);last=now;while(acc>=STEP){update();acc-=STEP}render();requestAnimationFrame(loop)}
