@@ -48,6 +48,9 @@ h1 .vs{color:#fff;font-size:.6em;vertical-align:middle}
 #tP{right:calc(3vmin + env(safe-area-inset-right) + var(--s)*1.2);bottom:5vmin}
 #tS{right:calc(3vmin + env(safe-area-inset-right) + var(--s)*.6);bottom:calc(5vmin + var(--s)*1.25)}
 #menuBtn{position:fixed;z-index:6;left:50%;transform:translateX(-50%);bottom:2vmin;font-family:inherit;font-size:10px;padding:8px 10px;background:rgba(0,0,0,.5);color:#fff;border:2px solid rgba(255,255,255,.5);cursor:pointer}
+#toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9;background:#c0392b;border:3px solid #fff;font-size:10px;padding:10px 14px;text-align:center;box-shadow:4px 4px 0 #000;max-width:90vw;line-height:1.6}
+#onList{display:flex;flex-direction:column;gap:10px;max-height:30vh;overflow:auto}
+#waitCode{letter-spacing:.15em}
 #rot{position:fixed;top:0;left:0;right:0;z-index:7;background:#c0392b;font-size:10px;padding:8px;text-align:center}
 </style>
 </head>
@@ -59,6 +62,7 @@ h1 .vs{color:#fff;font-size:.6em;vertical-align:middle}
   <div class="row">
     <button class="btn" data-mode="1">1 JUGADOR</button>
     <button class="btn alt" data-mode="2">2 JUGADORES</button>
+    <button class="btn" id="onlineBtn" style="background:#1d6a8c">🌐 ONLINE 1 VS 1</button>
   </div>
   <div class="row"><button class="btn alt" id="stageBtn" style="background:#3a2a1a">ESCENARIO: ACADEMIA</button><button class="btn alt" id="sndBtn" style="background:#1d5a3a">🔊 SONIDO: SÍ</button><button class="btn alt" id="voiceBtn" style="background:#4a2a6a;display:none">🗣 VOZ: del sistema</button></div>
   <a id="hubBtn" class="btn hidden" href="../green-apps/" style="text-decoration:none;background:#1d5c3a">← GREEN APPS</a>
@@ -71,8 +75,24 @@ h1 .vs{color:#fff;font-size:.6em;vertical-align:middle}
   <button class="btn alt" id="back">VOLVER</button>
 </div>
 
+<div id="online" class="ov hidden">
+  <h1>JUGAR ONLINE<small>1 VS 1 · cada uno en su equipo</small></h1>
+  <div class="sub" id="onSt">Conectando…</div>
+  <div id="onList"></div>
+  <a id="onOpen" class="btn alt hidden" href="https://claude.ai/artifact/XtJKAf54rjBKWAmscGmtP7" target="_blank" rel="noopener" style="text-decoration:none;background:#1d6a8c">ABRIR EN CLAUDE.AI PARA JUGAR ONLINE</a>
+  <div class="row"><button class="btn" id="onCreate">CREAR SALA</button><button class="btn alt" id="onBack">VOLVER</button></div>
+  <div class="sub" style="font-size:clamp(6px,1.6vmin,10px);color:#aaa">Uno crea la sala y el otro la toca en esta lista para unirse.<br>Tu rival debe abrir este mismo juego en claude.ai con su sesión iniciada.</div>
+</div>
+
+<div id="wait" class="ov hidden">
+  <h1 id="waitCode"></h1>
+  <div class="sub" id="waitTxt" style="max-width:640px"></div>
+  <button class="btn alt" id="waitCancel">SALIR DE LA SALA</button>
+</div>
+
 <div id="end" class="ov hidden">
   <h1 id="endTxt"></h1>
+  <div class="sub" id="endInfo" style="color:#ffd23f"></div>
   <div class="row">
     <button class="btn" id="again">REVANCHA</button>
     <button class="btn alt" id="toMenu">MENÚ</button>
@@ -89,6 +109,7 @@ h1 .vs{color:#fff;font-size:.6em;vertical-align:middle}
   <div class="tb" id="tS" data-k="special">★<small>ESPECIAL</small></div>
 </div>
 <button id="menuBtn" class="hidden">☰ MENÚ</button>
+<div id="toast" class="hidden"></div>
 <div id="rot" class="hidden">↻ Gira el celular para jugar mejor</div>
 
 <script>
@@ -474,10 +495,12 @@ addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','Arro
 addEventListener('keyup',e=>{keys[e.code]=false});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
 function readInputs(){
+  const net=game.mode===3&&NET.role==='host';
   for(const k in MAP1){
-    if(!P1.cpu)P1.ctl[k]=!!(keys[MAP1[k]]||touchState[k]||(game.mode===1&&keys[MAP2[k]]));
-    if(!P2.cpu)P2.ctl[k]=!!keys[MAP2[k]];
+    if(!P1.cpu)P1.ctl[k]=!!(keys[MAP1[k]]||touchState[k]||((game.mode===1||net)&&keys[MAP2[k]]));
+    if(!P2.cpu&&!net)P2.ctl[k]=!!keys[MAP2[k]];
   }
+  if(net)netReadGuest();
 }
 document.querySelectorAll('.tb').forEach(b=>{
   const k=b.dataset.k;
@@ -495,7 +518,7 @@ function startRound(){
 function startMatch(c1,c2){
   P1=new Fighter(0,c1,false);P2=new Fighter(1,c2,c1===c2);P2.cpu=game.mode===1;
   game.chars=[c1,c2];game.round=1;startRound();
-  ['menu','select','end'].forEach(id=>$(id).classList.add('hidden'));
+  ['menu','select','end','wait','online'].forEach(id=>$(id).classList.add('hidden'));$('endInfo').textContent='';
   $('touch').classList.toggle('hidden',!isTouch);$('menuBtn').classList.remove('hidden');
 }
 function timeUp(){game.time=0;game.state='roundEnd';game.endT=0;game.endMsg='¡TIEMPO!';game.winner=P1.hp>P2.hp?P1:P2.hp>P1.hp?P2:null;sfx.bell();say('¡Tiempo!')}
@@ -503,13 +526,14 @@ function endRound(){
   const w=game.winner;if(w)w.wins++;else{P1.wins++;P2.wins++}
   if(P1.wins>=2||P2.wins>=2){
     game.state='over';let msg;
+    if(game.mode===3){NET.over=true;showOnlineEnd();return}
     if(P1.wins>=2&&P2.wins>=2)msg='¡EMPATE!';
     else{const wn=P1.wins>=2?P1:P2;msg=(game.mode===1&&wn.cpu)?'PERDISTE...<small>GANA '+wn.c.name+'</small>':'¡GANA!<small>'+wn.c.name+'</small>'}
     $('endTxt').innerHTML=msg;$('end').classList.remove('hidden');$('touch').classList.add('hidden');$('menuBtn').classList.add('hidden');
   }else{game.round++;startRound()}
 }
 function demo(){P1=new Fighter(0,'pollo',false);P2=new Fighter(1,'robomelo',false);projs=[];parts=[];texts=[];demons=[]}
-function goMenu(){game.state='menu';demo();['select','end'].forEach(id=>$(id).classList.add('hidden'));$('menu').classList.remove('hidden');$('touch').classList.add('hidden');$('menuBtn').classList.add('hidden');try{speechSynthesis.cancel()}catch(e){}}
+function goMenu(){netLeave();game.state='menu';demo();$('endInfo').textContent='';['select','end','wait','online'].forEach(id=>$(id).classList.add('hidden'));$('menu').classList.remove('hidden');$('touch').classList.add('hidden');$('menuBtn').classList.add('hidden');try{speechSynthesis.cancel()}catch(e){}}
 
 let selChars=[];
 $('cards').innerHTML=ROSTER.map(k=>`<div class="card" data-ch="${k}"><canvas width="200" height="230"></canvas><span>${CH[k].name}</span><small>${CH[k].tag}</small></div>`).join('');
@@ -519,6 +543,7 @@ document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',(
 }));
 document.querySelectorAll('.card').forEach(cd=>cd.addEventListener('click',()=>{
   ac();const ch=cd.dataset.ch;selChars.push(ch);sfx.jump();if(ch==='curita'&&!playClip('curita_vivo'))setTimeout(()=>playClip('curita_vivo'),350);
+  if(game.mode===3){if(!NET.room)return goMenu();NET.ck=ch;netPres({ck:ch});$('select').classList.add('hidden');$('wait').classList.remove('hidden');game.state='wait';updWait();return}
   if(game.mode===2&&selChars.length<2){$('selTitle').textContent='JUGADOR 2, ELIGE TU LUCHADOR';return}
   const others=ROSTER.filter(k=>k!==ch);
   const c2=game.mode===1?others[Math.random()*others.length|0]:selChars[1];
@@ -526,8 +551,206 @@ document.querySelectorAll('.card').forEach(cd=>cd.addEventListener('click',()=>{
 }));
 $('back').onclick=goMenu;
 $('toMenu').onclick=goMenu;
-$('again').onclick=()=>{ac();startMatch(game.chars[0],game.chars[1])};
+$('again').onclick=()=>{ac();if(game.mode===3){if(!NET.room)return goMenu();NET.wantRm=true;netPres({rm:NET.mn+1});updEndInfo();return}startMatch(game.chars[0],game.chars[1])};
 $('menuBtn').onclick=goMenu;
+
+/* ---------- online 1 vs 1 (anfitrión simula, invitado ve y manda controles) ---------- */
+const NET={lobby:null,lobbyPeers:[],status:'conectando',room:null,role:null,code:null,me:null,ck:null,
+  gp:null,gin:null,gck:null,grm:null,hostSeen:false,hostPeer:null,hck:null,hrm:null,
+  mn:0,ev:[],evId:0,lastEv:-1,first:true,over:false,wantRm:false,frame:0,
+  lcnt:[0,0,0,0],lhit:[0,0,0,0],lprev:{},lastSent:null,lastCnt:[0,0,0,0]};
+const NETK=['left','right','up','down','punch','kick','special'],NETEDGE=['up','punch','kick','special'];
+const r1=v=>Math.round((+v||0)*10)/10;
+const isGuest=()=>game.mode===3&&NET.role==='guest';
+function netPres(patch){if(NET.room)NET.room.presence(patch).catch(()=>{})}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.add('hidden'),4000)}
+
+/* registrar sonidos del anfitrión para reproducirlos en el invitado */
+let recDepth=0;
+const recOK=()=>game.mode===3&&NET.role==='host'&&NET.mn>0&&(game.state==='intro'||game.state==='fight'||game.state==='roundEnd');
+function rec(name,fn,map){return function(...a){if(recDepth===0&&recOK()){NET.ev.push([++NET.evId,name,map?map(a):a]);if(NET.ev.length>14)NET.ev.shift()}recDepth++;try{return fn.apply(this,a)}finally{recDepth--}}}
+for(const k of Object.keys(sfx))sfx[k]=rec('sfx.'+k,sfx[k]);
+tone=rec('tone',tone);noise=rec('noise',noise);playClip=rec('clip',playClip);choir=rec('choir',choir);growl=rec('growl',growl);demonScream=rec('scream',demonScream);
+cvox=rec('cvox',cvox,a=>[a[0]&&a[0].idx?1:0,a[1]]);
+const EVF={tone:(...a)=>tone(...a),noise:(...a)=>noise(...a),clip:(...a)=>playClip(...a),choir:(...a)=>choir(...a),growl:(...a)=>growl(...a),scream:()=>demonScream(),cvox:(i,e)=>cvox(i?P2:P1,String(e))};
+function playEv(e){try{const n=String(e[1]),a=Array.isArray(e[2])?e[2]:[];
+  if(n.startsWith('sfx.')){const k=n.slice(4);if(Object.prototype.hasOwnProperty.call(sfx,k))sfx[k](...a)}
+  else if(Object.prototype.hasOwnProperty.call(EVF,n))EVF[n](...a)}catch(_){}}
+
+/* foto del estado (anfitrión → invitado) */
+function fSnap(f){return [r1(f.x),r1(f.y),r1(f.vx),r1(f.vy),f.face,f.st,f.t,f.mv||0,r1(f.hp),r1(f.dhp),r1(f.meter),f.wins,f.anim,f.flash,f.block?1:0,f.combo,f.comboT,f.ground?1:0,f.spk||0,f.poison,f.exoT?f.exoT.idx:-1]}
+function fApply(f,a){if(!Array.isArray(a)||a.length<21)return;
+  f.x=+a[0]||0;f.y=+a[1]||0;f.vx=+a[2]||0;f.vy=+a[3]||0;f.face=a[4]<0?-1:1;f.st=String(a[5]);f.t=a[6]|0;f.mv=MV[a[7]]?a[7]:null;
+  if(f.st==='attack'&&!f.mv)f.st='idle';
+  f.hp=+a[8]||0;f.dhp=+a[9]||0;f.meter=+a[10]||0;f.wins=a[11]|0;f.anim=a[12]|0;f.flash=a[13]|0;f.block=!!a[14];f.combo=a[15]|0;f.comboT=a[16]|0;f.ground=!!a[17];
+  f.spk=a[18]?String(a[18]):null;f.poison=a[19]|0;f.exoT=a[20]===0?P1:a[20]===1?P2:null}
+const enc=new TextEncoder();
+function snap(){
+  const s={mn:NET.mn,ch:game.chars,gs:game.state,tm:game.time,rd:game.round,it:game.introT,et:game.endT,em:game.endMsg,fz:game.freeze,sh:r1(game.shake),fl:game.flash,
+    f:[fSnap(P1),fSnap(P2)],
+    pj:projs.map(p=>[p.type,r1(p.x),r1(p.y),r1(p.y0||0),p.vx,p.t]),
+    dm:demons.map(d=>[r1(d.x),r1(d.y),d.t,d.ph,d.face||1,d.f?d.f.idx:-1,r1(d.vx),r1(d.vy)]),
+    tx:texts.map(t=>[r1(t.x),r1(t.y),t.s,t.life,t.col]),ev:NET.ev.slice()};
+  const np=[];for(const p of parts)if(!p._n){p._n=1;np.push([r1(p.x),r1(p.y),r1(p.vx),r1(p.vy),Math.round(p.life),p.max||30,p.col,r1(p.sz)])}
+  s.pt=np.slice(-24);
+  let n=enc.encode(JSON.stringify(s)).length;
+  while(n>3500&&s.pt.length){s.pt=s.pt.slice(Math.ceil(s.pt.length/2));n=enc.encode(JSON.stringify(s)).length}
+  if(n>3500){s.ev=s.ev.slice(-5);s.tx=s.tx.slice(-3)}
+  return s;
+}
+function applySnap(s){try{
+  if(!s||typeof s!=='object'||!Array.isArray(s.f))return;
+  if(s.mn!==NET.mn){
+    if(!Array.isArray(s.ch)||!CH.hasOwnProperty(s.ch[0])||!CH.hasOwnProperty(s.ch[1]))return;
+    NET.mn=s.mn;game.chars=[s.ch[0],s.ch[1]];game.mode=3;
+    P1=new Fighter(0,s.ch[0],false);P2=new Fighter(1,s.ch[1],s.ch[0]===s.ch[1]);
+    projs=[];parts=[];texts=[];demons=[];NET.wantRm=false;NET.over=false;netPres({rm:null});
+    ['menu','select','end','wait','online'].forEach(id=>$(id).classList.add('hidden'));$('endInfo').textContent='';
+    $('touch').classList.toggle('hidden',!isTouch);$('menuBtn').classList.remove('hidden');
+  }
+  if(!P1||!NET.mn)return;
+  const GS=['intro','fight','roundEnd','over'];game.state=GS.includes(s.gs)?s.gs:'fight';
+  game.time=s.tm|0;game.round=s.rd|0;game.introT=s.it|0;game.endT=s.et|0;game.endMsg=String(s.em||'').slice(0,20);game.freeze=Math.min(40,s.fz|0);
+  if(+s.sh>game.shake+1)game.shake=Math.min(30,+s.sh);if((s.fl|0)>game.flash)game.flash=Math.min(14,s.fl|0);
+  fApply(P1,s.f[0]);fApply(P2,s.f[1]);
+  if(Array.isArray(s.pj))projs=s.pj.slice(0,10).map(a=>({type:a[0]==='rad'?'rad':'laser',x:+a[1]||0,y:+a[2]||0,y0:+a[3]||0,vx:+a[4]||0,t:a[5]|0,life:99}));
+  if(Array.isArray(s.dm))demons=s.dm.slice(0,4).map(a=>({x:+a[0]||0,y:+a[1]||0,t:a[2]|0,ph:a[3]|0,face:a[4]<0?-1:1,f:a[5]===0?P1:a[5]===1?P2:null,vx:+a[6]||0,vy:+a[7]||0}));
+  if(Array.isArray(s.tx))texts=s.tx.slice(0,8).map(a=>({x:+a[0]||0,y:+a[1]||0,s:String(a[2]).slice(0,24),life:a[3]|0,col:String(a[4]).slice(0,30)}));
+  if(Array.isArray(s.pt))for(const a of s.pt.slice(0,30))parts.push({x:+a[0]||0,y:+a[1]||0,vx:+a[2]||0,vy:+a[3]||0,life:Math.min(60,a[4]|0),max:a[5]|0||30,col:String(a[6]).slice(0,30),sz:Math.min(30,+a[7]||4)});
+  if(parts.length>260)parts=parts.slice(-260);
+  if(Array.isArray(s.ev)){let mx=NET.lastEv;for(const e of s.ev){if(!Array.isArray(e))continue;const id=+e[0];if(!NET.first&&id>NET.lastEv)playEv(e);mx=Math.max(mx,id)}NET.lastEv=mx;NET.first=false}
+  if(game.state==='over'&&!NET.over){NET.over=true;showOnlineEnd()}
+}catch(_){}}
+
+/* el invitado: dibuja lo que manda el anfitrión y avanza un poquito entre fotos */
+function guestUpdate(){
+  updFx();
+  if(game.state==='over')return;
+  if(game.freeze>0){game.freeze--;return}
+  for(const f of [P1,P2]){if(!f.ground&&f.st!=='exo')f.vy+=GRAV;f.x=clamp(f.x+f.vx,40,W-40);f.y=Math.min(GROUND,f.y+f.vy);f.t++;f.anim++;if(f.flash>0)f.flash--}
+  for(const p of projs){p.x+=p.vx;p.t++;if(p.type==='rad')p.y=p.y0+Math.sin(p.t*.12)*10}
+  for(const d of demons){d.t++;if(d.ph)d.x+=d.vx,d.y+=d.vy}
+}
+function guestInput(){
+  const c={};for(const k of NETK)c[k]=!!(keys[MAP1[k]]||keys[MAP2[k]]||touchState[k]);
+  let bits=0;NETK.forEach((k,i)=>{if(c[k])bits|=1<<i});
+  NETEDGE.forEach((k,i)=>{if(c[k]&&!NET.lprev[k]&&!NET.lhit[i])NET.lcnt[i]++;NET.lhit[i]=0});NET.lprev=c;
+  const i=[bits,...NET.lcnt],key=i.join(',');
+  if(key!==NET.lastSent){NET.lastSent=key;netPres({i})}
+}
+function netTap(k){const i=NETEDGE.indexOf(k);if(i<0||!isGuest()||!NET.mn)return;if(!NET.lprev[k]){NET.lcnt[i]++;NET.lhit[i]=1}}
+addEventListener('keydown',e=>{if(e.repeat||!isGuest())return;for(const k of NETEDGE)if(MAP1[k]===e.code||MAP2[k]===e.code)netTap(k)});
+document.querySelectorAll('.tb').forEach(b=>b.addEventListener('pointerdown',()=>netTap(b.dataset.k)));
+function netReadGuest(){
+  const i=NET.gin;for(const k of NETK)P2.ctl[k]=false;
+  if(!Array.isArray(i))return;
+  const bits=i[0]|0;NETK.forEach((k,j)=>{P2.ctl[k]=!!(bits&(1<<j))});
+  NETEDGE.forEach((k,j)=>{const c=i[j+1]|0;if(c>NET.lastCnt[j]){P2.ctl[k]=true;P2.prev[k]=false}NET.lastCnt[j]=c});
+}
+function step(){if(isGuest()&&NET.mn>0&&P1)guestUpdate();else update();netTick()}
+function startNetMatch(){
+  NET.mn++;NET.over=false;NET.wantRm=false;netPres({rm:null});
+  NET.lastCnt=Array.isArray(NET.gin)?NET.gin.slice(1,5).map(v=>v|0):[0,0,0,0];
+  startMatch(NET.ck,NET.gck);
+}
+function netTick(){
+  if(game.mode!==3||!NET.room)return;
+  NET.frame++;
+  if(NET.role==='host'){
+    if(!NET.mn&&NET.ck&&NET.gp&&NET.gck)startNetMatch();
+    else if(NET.mn&&game.state==='over'&&NET.wantRm&&NET.grm===NET.mn+1)startNetMatch();
+    if(NET.mn&&P1&&NET.frame%(game.state==='over'?10:2)===0)netPres({s:snap()});
+  }else{
+    if(NET.mn)guestInput();
+    if(!NET.hostSeen&&NET.frame>60*7)return netLost('No se encontró esa sala');
+  }
+  if(game.state==='over'&&NET.frame%15===0)updEndInfo();
+}
+
+/* salas */
+function onRoomPeers(ch){
+  if(!NET.room)return;
+  const peers=ch.peers,me=peers.find(p=>p.sameTab);if(me)NET.me=me.peer;
+  const ckOf=p=>(p.presence&&CH.hasOwnProperty(p.presence.ck))?p.presence.ck:null;
+  if(NET.role==='host'){
+    if(NET.gp&&ch.left.some(p=>p.peer===NET.gp))return netLost('Tu rival se desconectó');
+    let g=NET.gp?peers.find(p=>p.peer===NET.gp):null;
+    if(!NET.gp){g=peers.find(p=>!p.sameTab&&p.presence&&p.presence.r==='g');if(g){NET.gp=g.peer;netPres({gp:g.peer});if(NET.lobby)NET.lobby.presence({sala:null}).catch(()=>{})}}
+    if(g){NET.gin=g.presence.i;NET.gck=ckOf(g);NET.grm=g.presence.rm}
+  }else{
+    if(NET.hostPeer&&ch.left.some(p=>p.peer===NET.hostPeer))return netLost('El anfitrión salió de la sala');
+    const h=peers.find(p=>!p.sameTab&&p.presence&&p.presence.r==='h');
+    if(h){
+      NET.hostSeen=true;NET.hostPeer=h.peer;const pr=h.presence;
+      if(pr.gp&&NET.me&&pr.gp!==NET.me)return netLost('Esa sala ya está llena');
+      NET.hck=ckOf(h);NET.hrm=pr.rm;if(pr.s)applySnap(pr.s);
+    }
+  }
+  updWait();
+}
+async function enterRoom(code,role){
+  if(!NET.lobby)return;
+  Object.assign(NET,{role,code,ck:null,gp:null,gin:null,gck:null,grm:null,hostSeen:false,hostPeer:null,hck:null,hrm:null,mn:0,first:true,over:false,wantRm:false,frame:0,lcnt:[0,0,0,0],lhit:[0,0,0,0],lprev:{},lastSent:null,lastCnt:[0,0,0,0]});
+  try{
+    const rm=await NET.lobby.join('af-'+code.toLowerCase());
+    NET.room=rm;game.mode=3;
+    rm.onPeers(onRoomPeers,()=>netLost('Se perdió la conexión con la sala'));
+    await rm.presence({r:role==='host'?'h':'g',ck:null});
+    if(role==='host')NET.lobby.presence({sala:code}).catch(()=>{});
+    selChars=[];game.state='select';$('selTitle').textContent='SALA '+code+' · ELIGE TU LUCHADOR';
+    $('online').classList.add('hidden');$('select').classList.remove('hidden');
+  }catch(e){NET.role=null;NET.room=null;toast('No se pudo entrar a la sala. Intenta de nuevo.')}
+}
+function netLeave(){
+  const rm=NET.room;NET.room=null;
+  if(rm)rm.leave().catch(()=>{});
+  if(NET.role==='host'&&NET.lobby)NET.lobby.presence({sala:null}).catch(()=>{});
+  NET.role=null;NET.mn=0;NET.gp=null;NET.hostSeen=false;
+  if(game.mode===3)game.mode=1;
+}
+function netLost(m){if(!NET.room&&!NET.role)return;goMenu();toast(m)}
+function showOnlineEnd(){
+  const me=NET.role==='host'?P1:P2,op=me===P1?P2:P1;
+  $('endTxt').innerHTML=(me.wins>=2&&op.wins>=2)?'¡EMPATE!':me.wins>=2?'¡GANASTE!<small>'+me.c.name+'</small>':'PERDISTE...<small>GANA '+op.c.name+'</small>';
+  $('end').classList.remove('hidden');$('touch').classList.add('hidden');$('menuBtn').classList.add('hidden');updEndInfo();
+}
+function updEndInfo(){
+  if(game.mode!==3)return;
+  const other=NET.role==='host'?NET.grm:NET.hrm,wants=other===NET.mn+1;
+  $('endInfo').textContent=NET.wantRm?(wants?'¡Empezando!':'Esperando al rival…'):(wants?'¡Tu rival quiere revancha!':'');
+}
+function updWait(){
+  if($('wait').classList.contains('hidden'))return;
+  $('waitCode').textContent='SALA '+(NET.code||'');
+  let t;
+  if(NET.role==='host')t=!NET.gp?'Esperando rival… Dile a tu amigo que abra el juego, entre a ONLINE 1 VS 1 y toque la sala '+NET.code+'.':!NET.gck?'¡Rival conectado! Está eligiendo luchador…':'¡Comenzando!';
+  else t=!NET.hostSeen?'Buscando la sala…':!NET.hck?'Conectado. El anfitrión está eligiendo luchador…':'¡Comenzando!';
+  $('waitTxt').textContent=t;
+}
+function renderOnline(){
+  if($('online').classList.contains('hidden'))return;
+  const ok=NET.status==='ok',list=$('onList');list.textContent='';
+  $('onCreate').disabled=!ok;$('onOpen').classList.toggle('hidden',NET.status!=='no');$('onCreate').style.opacity=ok?1:.4;
+  if(!ok){$('onSt').textContent=NET.status==='no'?'El modo online no está disponible aquí. Abre el juego desde claude.ai con tu sesión iniciada.':'Conectando…';return}
+  const salas=[],seen={};
+  for(const p of NET.lobbyPeers){const c=p.presence&&p.presence.sala;if(!p.sameTab&&typeof c==='string'&&/^[A-Z]{4}$/.test(c)&&!seen[c]){seen[c]=1;salas.push(c)}}
+  $('onSt').textContent=salas.length?'Salas abiertas (toca una para unirte):':'No hay salas abiertas. Crea una y avísale a tu rival.';
+  for(const c of salas){const b=document.createElement('button');b.className='btn alt';b.textContent='⚔ UNIRSE A SALA '+c;b.onclick=()=>{ac();enterRoom(c,'guest')};list.appendChild(b)}
+}
+$('onlineBtn').onclick=()=>{ac();game.state='online';$('menu').classList.add('hidden');$('online').classList.remove('hidden');renderOnline()};
+$('onBack').onclick=goMenu;$('waitCancel').onclick=goMenu;
+$('onCreate').onclick=()=>{if(NET.status!=='ok')return;ac();const L='ABCDEFGHJKLMNPQRSTUVWXYZ';let c='';for(let i=0;i<4;i++)c+=L[Math.random()*L.length|0];enterRoom(c,'host')};
+(async()=>{
+  try{
+    if(!window.claude||typeof window.claude.use!=='function'){NET.status='no';renderOnline();return}
+    const r=await window.claude.use('room');
+    if(!r){NET.status='no';renderOnline();return}
+    NET.lobby=r;NET.status='ok';
+    r.onPeers(ch=>{NET.lobbyPeers=ch.peers;renderOnline()},()=>{NET.status='no';NET.lobby=null;renderOnline()});
+  }catch(e){NET.status='no'}
+  renderOnline();
+})();
+setTimeout(()=>{if(NET.status==='conectando'){NET.status='no';renderOnline()}},12000);
 
 /* ---------- exorcismo: demonio ---------- */
 function updDemons(){
@@ -603,7 +826,7 @@ function updProjs(){
   projs=projs.filter(p=>!p.dead);
 }
 function update(){
-  if(game.state==='menu'||game.state==='select'||game.state==='over'){if(P1){P1.anim++;P2.anim++;P1.t++;P2.t++}updFx();return}
+  if(game.state==='menu'||game.state==='select'||game.state==='over'||game.state==='wait'||game.state==='online'){if(P1){P1.anim++;P2.anim++;P1.t++;P2.t++}updFx();return}
   if(game.freeze>0){game.freeze--;return}
   readInputs();
   if(game.state==='intro'){
@@ -1044,6 +1267,7 @@ function render(){
   ctx.globalAlpha=1;
   for(const t of texts){ctx.globalAlpha=Math.min(1,t.life/15);txt(t.s,t.x,t.y,18,t.col)}
   ctx.globalAlpha=1;
+  if(game.mode===3&&NET.mn&&P1&&(game.state==='intro'||(game.state==='fight'&&game.frames<120))){const f=NET.role==='host'?P1:P2;txt('▼ TÚ',f.x,f.y-f.c.h-30,13,'#7dff4a')}
   ctx.restore();
   if(game.flash>0){ctx.fillStyle='rgba(255,250,220,'+(game.flash/14)+')';ctx.fillRect(0,0,W,H);game.flash--}
   if(['intro','fight','roundEnd','over'].includes(game.state))drawHUD();
@@ -1053,7 +1277,7 @@ function render(){
 try{const fromHub=new URLSearchParams(location.search).get('via')==='green-apps'||sessionStorage.getItem('greenapps.via')==='1';if(fromHub){sessionStorage.setItem('greenapps.via','1');$('hubBtn').classList.remove('hidden')}}catch(e){}
 demo();
 let last=performance.now(),acc=0;const STEP=1000/60;
-function loop(now){acc+=Math.min(100,now-last);last=now;while(acc>=STEP){update();acc-=STEP}render();requestAnimationFrame(loop)}
+function loop(now){acc+=Math.min(100,now-last);last=now;while(acc>=STEP){step();acc-=STEP}render();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 })();
 </script>
