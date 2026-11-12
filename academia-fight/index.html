@@ -749,7 +749,7 @@ $('onJoin').onclick=joinByCode;$('onCode').addEventListener('keydown',e=>{e.stop
 $('waitCancel').onclick=goMenu;
 $('onCreate').onclick=()=>{if(NET.status!=='ok')return;ac();const L='ABCDEFGHJKLMNPQRSTUVWXYZ';let c='';for(let i=0;i<4;i++)c+=L[Math.random()*L.length|0];enterRoom(c,'host')};
 /* ---------- online fuera de claude.ai: Metered (señal) + canal directo entre equipos ---------- */
-const METERED_KEY='__METERED_KEY__';
+const METERED_KEY='pk_live_c3f2c86bc85dc2e5432c4a37d3474ca7b0d067f1';
 const METERED_SDK='https://cdn.jsdelivr.net/npm/@metered-ca/realtime@1/+esm';
 async function meteredLobby(){
   const mod=await import(METERED_SDK);
