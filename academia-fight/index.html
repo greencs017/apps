@@ -664,7 +664,7 @@ function netTick(){
     if(NET.mn&&P1&&NET.frame%(game.state==='over'?10:2)===0)netPres({s:snap()});
   }else{
     if(NET.mn)guestInput();
-    if(!NET.hostSeen&&NET.frame>60*(NET.lobby&&NET.lobby.kind==='code'?12:7))return netLost(NET.room&&NET.room.rawPeers&&NET.room.rawPeers()>0?'No se pudo conectar con tu rival (problema de red). Intenta de nuevo o cambia a WiFi.':'No se encontró esa sala');
+    if(!NET.hostSeen&&NET.frame>60*(NET.lobby&&NET.lobby.kind==='code'?20:7))return netLost(NET.room&&NET.room.rawPeers&&NET.room.rawPeers()>0?'No se pudo conectar con tu rival (problema de red). Intenta de nuevo o cambia a WiFi.':'No se encontró esa sala');
   }
   if(game.state==='over'&&NET.frame%15===0)updEndInfo();
 }
@@ -691,17 +691,19 @@ function onRoomPeers(ch){
   updWait();
 }
 async function enterRoom(code,role){
-  if(!NET.lobby)return;
+  if(!NET.lobby||enterRoom.busy)return;
+  enterRoom.busy=true;$('onSt').textContent='Conectando a la sala '+code+'…';$('onJoin').disabled=true;$('onCreate').disabled=true;
   Object.assign(NET,{role,code,ck:null,gp:null,gin:null,gck:null,grm:null,hostSeen:false,hostPeer:null,hck:null,hrm:null,mn:0,first:true,over:false,wantRm:false,frame:0,lcnt:[0,0,0,0],lhit:[0,0,0,0],lprev:{},lastSent:null,lastCnt:[0,0,0,0]});
   try{
-    const rm=await NET.lobby.join('af-'+code.toLowerCase());
+    const rm=await Promise.race([NET.lobby.join('af-'+code.toLowerCase()),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),20000))]);
     NET.room=rm;game.mode=3;
     rm.onPeers(onRoomPeers,()=>netLost('Se perdió la conexión con la sala'));
     await rm.presence({r:role==='host'?'h':'g',ck:null});
     if(role==='host')NET.lobby.presence({sala:code}).catch(()=>{});
     selChars=[];game.state='select';$('selTitle').textContent='SALA '+code+' · ELIGE TU LUCHADOR';
     $('online').classList.add('hidden');$('select').classList.remove('hidden');
-  }catch(e){NET.role=null;NET.room=null;toast('No se pudo entrar a la sala. Intenta de nuevo.')}
+  }catch(e){NET.role=null;NET.room=null;toast('No se pudo entrar a la sala. Revisa tu internet e intenta de nuevo.')}
+  enterRoom.busy=false;$('onJoin').disabled=false;renderOnline();
 }
 function netLeave(){
   const rm=NET.room;NET.room=null;
@@ -757,12 +759,19 @@ async function meteredLobby(){
   return {kind:'code',presence:()=>Promise.resolve(),onPeers:()=>()=>{},join:name=>meteredRoom(MP,name)};
 }
 async function meteredRoom(MP,name){
-  const mp=new MP({apiKey:METERED_KEY});
+  const ICE=[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},{urls:'stun:stun.cloudflare.com:3478'}];
+  const mp=new MP({apiKey:METERED_KEY,rtcPeerConnectionFactory:cfg=>new RTCPeerConnection({...(cfg||{}),iceServers:[...ICE,...((cfg&&cfg.iceServers)||[])]})});
   let ME='yo',myPres={},seq=0,pend=null,dead=false;
   const remotes=new Map(),hs=new Set(),errs=new Set();
   const snapshot=()=>{const a=[{peer:ME,sameTab:true,isMe:true,presence:myPres}];for(const [id,r] of remotes)if(r.pres)a.push({peer:id,sameTab:false,isMe:false,presence:r.pres});return a};
   const fire=(left=[])=>{if(dead)return;const ps=snapshot();for(const h of hs){try{h({peers:ps,joined:[],left,updated:[]})}catch(_){}}};
-  const sendR=r=>{if(r.dc&&r.dc.readyState==='open'){try{r.dc.send(JSON.stringify({q:seq,p:myPres}))}catch(_){}}};
+  const sendR=r=>{
+    const msg={q:seq,p:myPres};
+    if(r.dc&&r.dc.readyState==='open'){try{r.dc.send(JSON.stringify(msg));return}catch(_){}}
+    const now=Date.now();
+    if(now-r.born>4000&&now-(r.sigT||0)>=100&&r.id){r.sigT=now;mp.sendTo(r.id,msg).catch(()=>{})}
+  };
+  const onMsg=(r,m)=>{if(!m||typeof m.q!=='number'||!m.p||typeof m.p!=='object')return;r.last=Date.now();if(m.q<=r.q&&m.q>2)return;r.q=m.q;r.pres=m.p;fire()};
   const flush=()=>{pend=null;seq++;for(const r of remotes.values())sendR(r)};
   const idOf=rp=>rp&&(rp.peerId||rp.id);
   const drop=id=>{const r=remotes.get(id);if(!r)return;remotes.delete(id);try{r.dc&&r.dc.close()}catch(_){}if(r.pres)fire([{peer:id}])};
@@ -773,18 +782,19 @@ async function meteredRoom(MP,name){
       const dc=r.remote.pc.createDataChannel('af',{negotiated:true,id:7,ordered:false,maxRetransmits:0});
       r.dc=dc;
       dc.onopen=()=>sendR(r);
-      dc.onmessage=e=>{try{const m=JSON.parse(e.data);if(!m||typeof m.q!=='number'||!m.p||typeof m.p!=='object')return;r.last=Date.now();if(m.q<=r.q&&m.q>2)return;r.q=m.q;r.pres=m.p;fire()}catch(_){}};
+      dc.onmessage=e=>{try{onMsg(r,JSON.parse(e.data))}catch(_){}};
     }catch(_){}
   }
   function attach(rp){
     const id=idOf(rp);if(!id||dead)return;
     let r=remotes.get(id);if(r&&r.remote===rp)return;
-    if(!r){r={remote:rp,pres:null,q:-1,dc:null,last:Date.now()};remotes.set(id,r)}else r.remote=rp;
+    if(!r){r={id,remote:rp,pres:null,q:-1,dc:null,last:Date.now(),born:Date.now()};remotes.set(id,r)}else r.remote=rp;
     openDC(r);
     try{rp.on('connection-reset',()=>{r.q=-1;openDC(r)})}catch(_){}
   }
   mp.on('peer-joined',({peer})=>attach(peer));
   mp.on('peer-left',({peer})=>drop(idOf(peer)));
+  mp.on('data',({senderPeerId,data})=>{const r=remotes.get(senderPeerId);if(r)onMsg(r,data)});
   mp.on('error',({err})=>{const fatal=err&&/token|authorized|suspended|admin/i.test(err.name||'');if(fatal)for(const f of errs){try{f({code:'not_granted',message:String(err.name)})}catch(_){}}});
   await mp.join(name);
   if(mp.peerId)ME=String(mp.peerId);
