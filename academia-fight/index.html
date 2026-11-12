@@ -1369,6 +1369,8 @@ function render(){
 }
 
 try{const fromHub=new URLSearchParams(location.search).get('via')==='green-apps'||sessionStorage.getItem('greenapps.via')==='1';if(fromHub){sessionStorage.setItem('greenapps.via','1');$('hubBtn').classList.remove('hidden')}}catch(e){}
+// el enlace que se ve o se comparte queda siempre limpio (sin la marca de Green Apps)
+try{const u=new URL(location.href);if(u.searchParams.has('via')){u.searchParams.delete('via');history.replaceState(history.state,'',u.pathname+(u.search||'')+u.hash)}}catch(e){}
 demo();
 let last=performance.now(),acc=0;const STEP=1000/60;
 function loop(now){acc+=Math.min(100,now-last);last=now;while(acc>=STEP){step();acc-=STEP}render();requestAnimationFrame(loop)}
