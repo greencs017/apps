@@ -17,6 +17,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:none}
+input{user-select:text;-webkit-user-select:text;touch-action:manipulation}
+#onCode{font-family:inherit;font-size:clamp(14px,3.4vmin,22px);width:7.5em;padding:10px;text-align:center;text-transform:uppercase;letter-spacing:.2em;border:4px solid #fff;background:#1d1530;color:#ffd23f;box-shadow:4px 4px 0 #000}
 html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Press Start 2P',monospace;color:#fff}
 #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
 #c{display:block}
@@ -79,6 +81,7 @@ h1 .vs{color:#fff;font-size:.6em;vertical-align:middle}
   <h1>JUGAR ONLINE<small>1 VS 1 · cada uno en su equipo</small></h1>
   <div class="sub" id="onSt">Conectando…</div>
   <div id="onList"></div>
+  <div class="row hidden" id="onCodeRow"><input id="onCode" maxlength="4" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="btn alt" id="onJoin">UNIRSE</button></div>
   <a id="onOpen" class="btn alt hidden" href="https://claude.ai/artifact/XtJKAf54rjBKWAmscGmtP7" target="_blank" rel="noopener" style="text-decoration:none;background:#1d6a8c">ABRIR EN CLAUDE.AI PARA JUGAR ONLINE</a>
   <div class="row"><button class="btn" id="onCreate">CREAR SALA</button><button class="btn alt" id="onBack">VOLVER</button></div>
   <div class="sub" style="font-size:clamp(6px,1.6vmin,10px);color:#aaa">Uno crea la sala y el otro la toca en esta lista para unirse.<br>Tu rival debe abrir este mismo juego en claude.ai con su sesión iniciada.</div>
@@ -662,7 +665,7 @@ function netTick(){
     if(NET.mn&&P1&&NET.frame%(game.state==='over'?10:2)===0)netPres({s:snap()});
   }else{
     if(NET.mn)guestInput();
-    if(!NET.hostSeen&&NET.frame>60*7)return netLost('No se encontró esa sala');
+    if(!NET.hostSeen&&NET.frame>60*(NET.lobby&&NET.lobby.kind==='code'?12:7))return netLost(NET.room&&NET.room.rawPeers&&NET.room.rawPeers()>0?'No se pudo conectar con tu rival (problema de red). Intenta de nuevo o cambia a WiFi.':'No se encontró esa sala');
   }
   if(game.state==='over'&&NET.frame%15===0)updEndInfo();
 }
@@ -723,7 +726,7 @@ function updWait(){
   if($('wait').classList.contains('hidden'))return;
   $('waitCode').textContent='SALA '+(NET.code||'');
   let t;
-  if(NET.role==='host')t=!NET.gp?'Esperando rival… Dile a tu amigo que abra el juego, entre a ONLINE 1 VS 1 y toque la sala '+NET.code+'.':!NET.gck?'¡Rival conectado! Está eligiendo luchador…':'¡Comenzando!';
+  if(NET.role==='host')t=!NET.gp?'Esperando rival… '+(NET.lobby&&NET.lobby.kind==='code'?'Mándale este código a tu amigo: que entre a ONLINE 1 VS 1 y escriba '+NET.code+'.':'Dile a tu amigo que abra el juego, entre a ONLINE 1 VS 1 y toque la sala '+NET.code+'.'):!NET.gck?'¡Rival conectado! Está eligiendo luchador…':'¡Comenzando!';
   else t=!NET.hostSeen?'Buscando la sala…':!NET.hck?'Conectado. El anfitrión está eligiendo luchador…':'¡Comenzando!';
   $('waitTxt').textContent=t;
 }
@@ -732,19 +735,75 @@ function renderOnline(){
   const ok=NET.status==='ok',list=$('onList');list.textContent='';
   $('onCreate').disabled=!ok;$('onOpen').classList.toggle('hidden',NET.status!=='no');$('onCreate').style.opacity=ok?1:.4;
   if(!ok){$('onSt').textContent=NET.status==='no'?'El modo online no está disponible aquí. Abre el juego desde claude.ai con tu sesión iniciada.':'Conectando…';return}
+  const code=NET.lobby&&NET.lobby.kind==='code';$('onCodeRow').classList.toggle('hidden',!code);
+  if(code){$('onSt').textContent='Crea una sala o escribe el código que te mandó tu rival:';return}
   const salas=[],seen={};
   for(const p of NET.lobbyPeers){const c=p.presence&&p.presence.sala;if(!p.sameTab&&typeof c==='string'&&/^[A-Z]{4}$/.test(c)&&!seen[c]){seen[c]=1;salas.push(c)}}
   $('onSt').textContent=salas.length?'Salas abiertas (toca una para unirte):':'No hay salas abiertas. Crea una y avísale a tu rival.';
   for(const c of salas){const b=document.createElement('button');b.className='btn alt';b.textContent='⚔ UNIRSE A SALA '+c;b.onclick=()=>{ac();enterRoom(c,'guest')};list.appendChild(b)}
 }
 $('onlineBtn').onclick=()=>{ac();game.state='online';$('menu').classList.add('hidden');$('online').classList.remove('hidden');renderOnline()};
-$('onBack').onclick=goMenu;$('waitCancel').onclick=goMenu;
+$('onBack').onclick=goMenu;
+function joinByCode(){const c=($('onCode').value||'').toUpperCase().replace(/[^A-Z]/g,'');if(c.length!==4){toast('El código tiene 4 letras');return}ac();$('onCode').blur();enterRoom(c,'guest')}
+$('onJoin').onclick=joinByCode;$('onCode').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')joinByCode()});
+$('waitCancel').onclick=goMenu;
 $('onCreate').onclick=()=>{if(NET.status!=='ok')return;ac();const L='ABCDEFGHJKLMNPQRSTUVWXYZ';let c='';for(let i=0;i<4;i++)c+=L[Math.random()*L.length|0];enterRoom(c,'host')};
+/* ---------- online fuera de claude.ai: Metered (señal) + canal directo entre equipos ---------- */
+const METERED_KEY='pk_live_c3f2c86bc85dc2e5432c4a37d3474ca7b0d067f1';
+const METERED_SDK='https://cdn.jsdelivr.net/npm/@metered-ca/realtime@1/+esm';
+async function meteredLobby(){
+  const mod=await import(METERED_SDK);
+  const MP=mod.MeteredPeer||(mod.default&&mod.default.MeteredPeer);
+  if(!MP)throw new Error('sdk');
+  return {kind:'code',presence:()=>Promise.resolve(),onPeers:()=>()=>{},join:name=>meteredRoom(MP,name)};
+}
+async function meteredRoom(MP,name){
+  const mp=new MP({apiKey:METERED_KEY});
+  let ME='yo',myPres={},seq=0,pend=null,dead=false;
+  const remotes=new Map(),hs=new Set(),errs=new Set();
+  const snapshot=()=>{const a=[{peer:ME,sameTab:true,isMe:true,presence:myPres}];for(const [id,r] of remotes)if(r.pres)a.push({peer:id,sameTab:false,isMe:false,presence:r.pres});return a};
+  const fire=(left=[])=>{if(dead)return;const ps=snapshot();for(const h of hs){try{h({peers:ps,joined:[],left,updated:[]})}catch(_){}}};
+  const sendR=r=>{if(r.dc&&r.dc.readyState==='open'){try{r.dc.send(JSON.stringify({q:seq,p:myPres}))}catch(_){}}};
+  const flush=()=>{pend=null;seq++;for(const r of remotes.values())sendR(r)};
+  const idOf=rp=>rp&&(rp.peerId||rp.id);
+  const drop=id=>{const r=remotes.get(id);if(!r)return;remotes.delete(id);try{r.dc&&r.dc.close()}catch(_){}if(r.pres)fire([{peer:id}])};
+  function openDC(r,n=0){
+    if(dead)return;
+    if(!r.remote.pc){if(n<40)setTimeout(()=>openDC(r,n+1),250);return}
+    try{
+      const dc=r.remote.pc.createDataChannel('af',{negotiated:true,id:7,ordered:false,maxRetransmits:0});
+      r.dc=dc;
+      dc.onopen=()=>sendR(r);
+      dc.onmessage=e=>{try{const m=JSON.parse(e.data);if(!m||typeof m.q!=='number'||!m.p||typeof m.p!=='object')return;r.last=Date.now();if(m.q<=r.q&&m.q>2)return;r.q=m.q;r.pres=m.p;fire()}catch(_){}};
+    }catch(_){}
+  }
+  function attach(rp){
+    const id=idOf(rp);if(!id||dead)return;
+    let r=remotes.get(id);if(r&&r.remote===rp)return;
+    if(!r){r={remote:rp,pres:null,q:-1,dc:null,last:Date.now()};remotes.set(id,r)}else r.remote=rp;
+    openDC(r);
+    try{rp.on('connection-reset',()=>{r.q=-1;openDC(r)})}catch(_){}
+  }
+  mp.on('peer-joined',({peer})=>attach(peer));
+  mp.on('peer-left',({peer})=>drop(idOf(peer)));
+  mp.on('error',({err})=>{const fatal=err&&/token|authorized|suspended|admin/i.test(err.name||'');if(fatal)for(const f of errs){try{f({code:'not_granted',message:String(err.name)})}catch(_){}}});
+  await mp.join(name);
+  if(mp.peerId)ME=String(mp.peerId);
+  for(const rp of mp.remotePeers||[])attach(rp);
+  const hb=setInterval(()=>{flush();const now=Date.now();for(const [id,r] of [...remotes])if(r.pres&&now-r.last>8000)drop(id)},250);
+  return {
+    presence(patch){for(const k in patch){if(patch[k]===null)delete myPres[k];else myPres[k]=patch[k]}myPres={...myPres};if(!pend)pend=setTimeout(flush,15);return Promise.resolve()},
+    onPeers(h,onErr){hs.add(h);if(onErr)errs.add(onErr);setTimeout(()=>{if(!dead)h({peers:snapshot(),joined:[],left:[],updated:[]})},0);return()=>hs.delete(h)},
+    rawPeers:()=>remotes.size,
+    leave(){dead=true;clearInterval(hb);hs.clear();errs.clear();try{mp.close('salir')}catch(_){}return Promise.resolve()}
+  };
+}
 (async()=>{
   try{
-    if(!window.claude||typeof window.claude.use!=='function'){NET.status='no';renderOnline();return}
-    const r=await window.claude.use('room');
-    if(!r){NET.status='no';renderOnline();return}
+    const r=(window.claude&&typeof window.claude.use==='function')?await window.claude.use('room'):null;
+    if(!r){
+      if(/^pk_/.test(METERED_KEY)){NET.lobby=await meteredLobby();NET.status='ok'}else NET.status='no';
+      renderOnline();return}
     NET.lobby=r;NET.status='ok';
     r.onPeers(ch=>{NET.lobbyPeers=ch.peers;renderOnline()},()=>{NET.status='no';NET.lobby=null;renderOnline()});
   }catch(e){NET.status='no'}
