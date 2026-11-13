@@ -18,8 +18,7 @@
   // Aplicaciones de libre acceso: se muestran a todos, sin revisar autorización ni pedir correo.
   const FREE_APPS = [
     { id: 'academia-fight', name: 'Academia Fight', desc: 'Juego de peleas', path: '../academia-fight/', icon: '../academia-fight/icon-192.png?v=1' },
-    // Green English vive en su propio despliegue (repo privado en Vercel); se abre directo, sin login.
-    { id: 'green-english', name: 'Green English', desc: 'Inglés para niños', path: 'https://green-english.vercel.app/', icon: 'https://green-english.vercel.app/icon-192.png?v=1' }
+    { id: 'green-english', name: 'Green English', desc: 'Inglés para niños', path: '../green-english/', icon: '../green-english/icon-192.png?v=1' }
   ];
   const CLIENT_ID = '892491045559-mt2b7iabv71djbu6icf6rpl2a2fa90e8.apps.googleusercontent.com';
   const EMAIL_KEY = 'greenapps.email.v1', KNOWN_KEY = 'greenapps.authorized.v1', GOOGLE_KEY = 'greenapps.google.v1';

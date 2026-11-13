@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src https://green-english.vercel.app; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#5B3FE0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Green English">
+  <meta name="application-name" content="Green English">
+  <link rel="icon" type="image/png" href="icon-192.png?v=1">
+  <link rel="apple-touch-icon" href="icon-180.png?v=1">
+  <link rel="manifest" href="manifest.webmanifest?v=1">
+  <title>Green English</title>
+  <style>
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#ECEBFA}
+    #shell{position:fixed;inset:0;background:#ECEBFA}
+    iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;background:#ECEBFA}
+    #loading{position:absolute;inset:0;display:grid;place-items:center;padding:24px;z-index:2;color:#5B3FE0;font:700 20px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#ECEBFA;text-align:center}
+    .ready #loading{display:none}
+    #retry{padding:12px 22px;border-radius:10px;font:inherit}
+  </style>
+</head>
+<body>
+  <main id="shell">
+    <div id="loading"><div><p id="loadingText">Abriendo Green English…</p><button id="retry" hidden>Reintentar</button></div></div>
+    <iframe id="app" data-app="green-english" title="Green English" width="100%" height="100%" frameborder="0"
+      data-src="https://green-english.vercel.app/?build=20261113-1"
+      allow="microphone; autoplay; clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </main>
+  <noscript>Activa JavaScript para abrir Green English.</noscript>
+  <script src="../install-guide.js?v=20261006-install3" defer></script>
+  <script src="launcher.js?v=1" defer></script>
+</body>
+</html>
