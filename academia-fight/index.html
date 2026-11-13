@@ -22,6 +22,7 @@ input{user-select:text;-webkit-user-select:text;touch-action:manipulation}
 html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Press Start 2P',monospace;color:#fff}
 #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
 #c{display:block}
+.stcard{display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff;font-weight:800;font-size:clamp(8px,2.2vmin,14px)}.stcard canvas{width:clamp(70px,20vmin,150px);height:auto}
 .ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,3vmin,22px);background:rgba(12,6,24,.72);text-align:center;padding:12px;z-index:5}
 .hidden{display:none!important}
 h1{font-size:clamp(20px,5.5vmin,46px);line-height:1.35;color:#ffd23f;text-shadow:3px 3px 0 #c0392b,6px 6px 0 #000}
@@ -62,6 +63,7 @@ h1 .vs{color:#fff;font-size:.6em;vertical-align:middle}
 <div id="menu" class="ov">
   <h1>ACADEMIA FIGHT<small>(nombre provisorio)</small></h1>
   <div class="row">
+    <button class="btn" id="storyBtn" style="background:#8c1d3a">📖 MODO HISTORIA</button>
     <button class="btn" data-mode="1">1 VS PC</button>
     <button class="btn" id="onlineBtn" style="background:#1d6a8c">🌐 ONLINE 1 VS 1</button>
   </div>
@@ -94,6 +96,18 @@ h1 .vs{color:#fff;font-size:.6em;vertical-align:middle}
   <button class="btn alt stSel" id="waitStage" style="background:#3a2a1a">ESCENARIO: ACADEMIA</button>
   <div class="sub" id="waitStageTxt" style="color:#ffd23f"></div>
   <button class="btn alt" id="waitCancel">SALIR DE LA SALA</button>
+</div>
+
+<div id="story" class="ov hidden">
+  <div class="sub" id="stStep" style="color:#ffd23f;font-size:clamp(9px,2.4vmin,14px)"></div>
+  <h1 id="stTitle"></h1>
+  <div class="row" style="align-items:center;gap:clamp(8px,3vmin,30px)">
+    <div class="stcard" id="stMe"><canvas width="200" height="230"></canvas><span></span></div>
+    <div style="font-size:clamp(18px,6vmin,46px);color:#ffd23f;font-weight:900">VS</div>
+    <div class="stcard" id="stRival"><canvas width="200" height="230"></canvas><span></span></div>
+  </div>
+  <div class="sub" id="stInfo"></div>
+  <div class="row"><button class="btn" id="stGo">¡A PELEAR!</button><button class="btn alt" id="stMenu">MENÚ</button></div>
 </div>
 
 <div id="end" class="ov hidden">
@@ -523,7 +537,8 @@ function cpuThink(me,o){
   const dx=o.x-me.x,dist=Math.abs(dx),tw=dx>0?'right':'left',aw=dx>0?'left':'right';
   const oAtk=o.st==='attack'||o.st==='special'||projs.some(p=>p.own===o&&Math.abs(p.x-me.x)<220);
   const r=Math.random(),h={};
-  if(oAtk&&dist<170&&r<.55){h.down=true;ai.cd=16}
+  const LV=game.mode===4?game.lv:-1;
+  if(oAtk&&dist<170&&r<(LV<0?.55:.35+.35*LV)){h.down=true;ai.cd=16}
   else if(me.meter>=50&&r<.45&&((['laser','rad'].includes(me.c.sp)&&dist>200)||(me.c.sp==='bomb'&&dist>170&&dist<450)||(['dash','lunge'].includes(me.c.sp)&&dist>110&&dist<340)||(me.c.sp==='bite'&&dist<300)||(me.c.sp==='butt'&&dist<300)||(['upper','flurry'].includes(me.c.sp)&&dist<105)||(me.c.sp==='exo'&&dist>70&&dist<300)||(me.c.sp==='vivo'&&dist<300))){h.special=true;if(me.c.sp2&&dist>130)h.down=true;ai.cd=22}
   else if(dist>120){h[tw]=true;if(r<.08)h.up=true;ai.cd=6+(Math.random()*10|0)}
   else{
@@ -531,6 +546,7 @@ function cpuThink(me,o){
     else if(r<.86){h.up=true;h[tw]=true}else h.down=true;
     ai.cd=10+(Math.random()*14|0);
   }
+  if(LV>=0)ai.cd=Math.round(ai.cd*(1.25-.55*LV));
   Object.assign(ct,h);
   ai.hold={...h,punch:false,kick:false,special:false,up:false};
 }
@@ -545,7 +561,7 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
 function readInputs(){
   const net=game.mode===3&&NET.role==='host';
   for(const k in MAP1){
-    if(!P1.cpu)P1.ctl[k]=!!(keys[MAP1[k]]||touchState[k]||((game.mode===1||net)&&keys[MAP2[k]]));
+    if(!P1.cpu)P1.ctl[k]=!!(keys[MAP1[k]]||touchState[k]||((game.mode===1||game.mode===4||net)&&keys[MAP2[k]]));
     if(!P2.cpu&&!net)P2.ctl[k]=!!keys[MAP2[k]];
   }
   if(net)netReadGuest();
@@ -564,7 +580,7 @@ function startRound(){
   game.time=60;game.frames=0;game.state='intro';game.introT=0;game.winner=null;
 }
 function startMatch(c1,c2){
-  P1=new Fighter(0,c1,false);P2=new Fighter(1,c2,c1===c2);P2.cpu=game.mode===1;
+  P1=new Fighter(0,c1,false);P2=new Fighter(1,c2,c1===c2);P2.cpu=game.mode===1||game.mode===4;
   game.chars=[c1,c2];game.round=1;startRound();
   ['menu','select','end','wait','online'].forEach(id=>$(id).classList.add('hidden'));$('endInfo').textContent='';
   $('touch').classList.toggle('hidden',!isTouch);$('menuBtn').classList.remove('hidden');
@@ -575,13 +591,41 @@ function endRound(){
   if(P1.wins>=2||P2.wins>=2){
     game.state='over';let msg;
     if(game.mode===3){NET.over=true;showOnlineEnd();return}
+    if(game.mode===4){storyResult(P1.wins>=2&&P2.wins<2);return}
     if(P1.wins>=2&&P2.wins>=2)msg='¡EMPATE!';
     else{const wn=P1.wins>=2?P1:P2;msg=(game.mode===1&&wn.cpu)?'PERDISTE...<small>GANA '+wn.c.name+'</small>':'¡GANA!<small>'+wn.c.name+'</small>'}
     $('endTxt').innerHTML=msg;$('end').classList.remove('hidden');$('touch').classList.add('hidden');$('menuBtn').classList.add('hidden');
   }else{game.round++;startRound()}
 }
 function demo(){P1=new Fighter(0,'pollo',false);P2=new Fighter(1,'robomelo',false);projs=[];parts=[];texts=[];demons=[]}
-function goMenu(){netLeave();game.state='menu';demo();$('endInfo').textContent='';['select','end','wait','online'].forEach(id=>$(id).classList.add('hidden'));$('menu').classList.remove('hidden');$('touch').classList.add('hidden');$('menuBtn').classList.add('hidden');try{speechSynthesis.cancel()}catch(e){}}
+function goMenu(){netLeave();$('story').classList.add('hidden');$('again').textContent='REVANCHA';if(game.story&&game.story.prev){const pv=game.story.prev;game.story=null;setStage(pv)}game.state='menu';demo();$('endInfo').textContent='';['select','end','wait','online'].forEach(id=>$(id).classList.add('hidden'));$('menu').classList.remove('hidden');$('touch').classList.add('hidden');$('menuBtn').classList.add('hidden');try{speechSynthesis.cancel()}catch(e){}}
+
+/* ---------- modo historia ---------- */
+// escenario de cada rival (si no tiene uno propio, pelea en la academia)
+const STORY_STAGE={coreano:'seul',curita:'vaticano'};
+const storyStage=ck=>STORY_STAGE[ck]&&STAGES.some(s=>s[0]===STORY_STAGE[ck])?STORY_STAGE[ck]:'academia';
+function storyNew(me){const list=ROSTER.filter(k=>k!==me);for(let i=list.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[list[i],list[j]]=[list[j],list[i]]}
+  game.story={me,list,i:0,prev:game.story&&game.story.prev||stage};storyCard('next')}
+function storyCard(kind){const S=game.story,rv=S.list[S.i],n=S.list.length;game.state='select';
+  ['menu','select','end'].forEach(id=>$(id).classList.add('hidden'));$('touch').classList.add('hidden');$('menuBtn').classList.add('hidden');
+  $('stStep').textContent='MODO HISTORIA · RIVAL '+(S.i+1)+' DE '+n;
+  $('stTitle').innerHTML=kind==='retry'?'¡OTRA VEZ!<small>no te rindas</small>':S.i===0?'¡COMIENZA LA HISTORIA!':S.i===n-1?'¡PELEA FINAL!':'¡SIGUIENTE RIVAL!';
+  $('stMe').dataset.ch=S.me;$('stMe').querySelector('span').textContent=CH[S.me].name;
+  $('stRival').dataset.ch=rv;$('stRival').querySelector('span').textContent=CH[rv].name;
+  const st=storyStage(rv);$('stInfo').textContent='ESCENARIO: '+STAGES.find(s=>s[0]===st)[1];
+  $('stGo').textContent='¡A PELEAR!';$('stGo').onclick=()=>{ac();storyFight()};
+  $('story').classList.remove('hidden');}
+function storyFight(){const S=game.story,rv=S.list[S.i];game.mode=4;game.lv=S.list.length>1?S.i/(S.list.length-1):1;
+  setStage(storyStage(rv));$('story').classList.add('hidden');startMatch(S.me,rv)}
+function storyResult(won){const S=game.story;$('touch').classList.add('hidden');$('menuBtn').classList.add('hidden');
+  if(!won){$('endTxt').innerHTML='PERDISTE...<small>GANA '+CH[S.list[S.i]].name+'</small>';$('endInfo').textContent='MODO HISTORIA · RIVAL '+(S.i+1)+' DE '+S.list.length;
+    $('again').textContent='REINTENTAR';$('end').classList.remove('hidden');return}
+  if(S.i>=S.list.length-1){$('endTxt').innerHTML='¡CAMPEÓN DE LA ACADEMIA!<small>'+CH[S.me].name+' venció a todos</small>';$('endInfo').textContent='MODO HISTORIA COMPLETADO';
+    $('again').textContent='JUGAR DE NUEVO';S.done=true;$('end').classList.remove('hidden');sfx.bell();return}
+  S.i++;setTimeout(()=>{if(game.mode===4&&game.state==='over')storyCard('next')},900)}
+$('storyBtn').onclick=()=>{ac();game.mode=4;game.story=null;selChars=[];game.state='select';
+  $('selTitle').textContent='MODO HISTORIA · ELIGE TU LUCHADOR';$('menu').classList.add('hidden');$('select').classList.remove('hidden')};
+$('stMenu').onclick=()=>goMenu();
 
 let selChars=[];
 $('cards').innerHTML=ROSTER.map(k=>`<div class="card" data-ch="${k}"><canvas width="200" height="230"></canvas><span>${CH[k].name}</span><small>${CH[k].tag}</small></div>`).join('');
@@ -593,13 +637,14 @@ document.querySelectorAll('.card').forEach(cd=>cd.addEventListener('click',()=>{
   ac();const ch=cd.dataset.ch;selChars.push(ch);sfx.jump();if(ch==='curita'&&!playClip('curita_vivo'))setTimeout(()=>playClip('curita_vivo'),350);
   if(game.mode===3){if(!NET.room)return goMenu();NET.ck=ch;netPres({ck:ch});$('select').classList.add('hidden');$('wait').classList.remove('hidden');game.state='wait';updWait();return}
   if(game.mode===2&&selChars.length<2){$('selTitle').textContent='JUGADOR 2, ELIGE TU LUCHADOR';return}
+  if(game.mode===4){$('select').classList.add('hidden');storyNew(ch);return}
   const others=ROSTER.filter(k=>k!==ch);
   const c2=game.mode===1?others[Math.random()*others.length|0]:selChars[1];
   startMatch(selChars[0],c2);
 }));
 $('back').onclick=goMenu;
 $('toMenu').onclick=goMenu;
-$('again').onclick=()=>{ac();if(game.mode===3){if(!NET.room)return goMenu();NET.wantRm=true;netPres({rm:NET.mn+1});updEndInfo();return}startMatch(game.chars[0],game.chars[1])};
+$('again').onclick=()=>{ac();if(game.mode===4&&game.story){$('end').classList.add('hidden');if(game.story.done)storyNew(game.story.me);else storyCard('retry');return}if(game.mode===3){if(!NET.room)return goMenu();NET.wantRm=true;netPres({rm:NET.mn+1});updEndInfo();return}startMatch(game.chars[0],game.chars[1])};
 $('menuBtn').onclick=goMenu;
 
 /* ---------- online 1 vs 1 (anfitrión simula, invitado ve y manda controles) ---------- */
@@ -1470,7 +1515,7 @@ function drawHUD(){
   txt(String(Math.max(0,game.time)).padStart(2,'0'),480,48,24,game.time<=10?'#ff5050':'#ffd23f');
   for(const f of [P1,P2])if(f.combo>=2&&f.comboT>0)txt(f.combo+' GOLPES',f.idx?W-40:40,140,16,'#ffd23f',f.idx?'right':'left');
   if(game.state==='intro'){
-    if(game.introT<72){const s=Math.min(1,game.introT/12);txt('ROUND '+game.round,480,270,Math.round(44*s)+4,'#fff')}
+    if(game.introT<72){const s=Math.min(1,game.introT/12);if(game.mode===4&&game.story)txt('RIVAL '+(game.story.i+1)+' / '+game.story.list.length,480,198,18,'#ffd23f');txt('ROUND '+game.round,480,270,Math.round(44*s)+4,'#fff')}
     else{const s=Math.min(1,(game.introT-72)/8);txt('¡PELEEN!',480,270,Math.round(52*s)+4,'#ffd23f')}
   }
   if(game.state==='roundEnd'&&game.endT<130){const s=Math.min(1,game.endT/10+.3);txt(game.endMsg,480,270,Math.round(64*s),'#ff3b3b')}
@@ -1479,7 +1524,7 @@ function drawHUD(){
 /* ---------- previews ---------- */
 const prevF={};for(const k of ROSTER)prevF[k]=new Fighter(0,k,false);
 function drawPreviews(){
-  document.querySelectorAll('.card').forEach(cd=>{
+  document.querySelectorAll('.card,.stcard').forEach(cd=>{if(!cd.dataset.ch||cd.offsetParent===null)return;
     const ck=cd.dataset.ch,cvs=cd.querySelector('canvas'),pc=cvs.getContext('2d'),f=prevF[ck];
     f.anim++;g=pc;pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,200,230);
     pc.fillStyle='rgba(0,0,0,.3)';pc.beginPath();pc.ellipse(100,214,50,8,0,0,Math.PI*2);pc.fill();
