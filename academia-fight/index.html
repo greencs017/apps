@@ -409,15 +409,23 @@ class Fighter{
       if(t===14){projs.push({type:'bomb',x:this.x+this.face*34,y:this.y-c.h*.85,y0:this.y-c.h*.85,vx:this.face*7.5,own:this,life:140,t:0});sfx.whoosh()}
       if(t>=34)this.setSt('idle');
     }else if(sp==='bite'){
-      // corre hacia el rival, abre el hocico y muerde
+      // corre, muerde, arrastra sacudiendo al rival y lo suelta
       const near=Math.abs(o.x-this.x)<c.w*.5+o.c.w*.5+28;
-      if(t===1)growl(.45,.4);
+      if(t===1){growl(.45,.4);this.grab=0}
       if(t<6)this.vx=0;
       else if(t<22){this.vx=near?0:this.face*13;if(!near&&t%3===0)parts.push({x:this.x-this.face*25,y:GROUND-4,vx:-this.face*2,vy:-1.5,life:22,max:22,col:'rgba(200,190,170,.8)',sz:8})}
-      else{this.vx*=.6;
-        if(t===28){tone(1900,260,.07,'square',.2);noise(.09,.45,4200);
-          if(tryHit({x:this.face>0?this.x+5:this.x-95,y:this.y-c.h*1.05,w:90,h:c.h*.6},17,10,30,true))texts.push({x:o.x,y:o.y-o.c.h-40,s:'¡ÑAC!',life:55,col:'#fff'})}
-        if(t>=46)this.setSt('idle')}
+      else if(t===22){this.vx=0;tone(1900,260,.07,'square',.2);noise(.09,.45,4200);
+        if(tryHit({x:this.face>0?this.x+5:this.x-95,y:this.y-c.h*1.05,w:90,h:c.h*.9},5,0,14,false)&&o.st==='hurt'){this.grab=1;growl(1.2,.5);texts.push({x:o.x,y:o.y-o.c.h-40,s:'¡GRRR!',life:60,col:'#fff'})}}
+      else if(this.grab&&t<74&&o.st!=='ko'){
+        this.vx=-this.face*2.4;
+        o.setSt('hurt');o.t=t;o.stun=12;o.vx=0;o.vy=0;o.y=GROUND;o.ground=true;o.face=-this.face;
+        o.x=clamp(this.x+this.face*(44+Math.sin(t*1.1)*9),40,W-40);
+        if(t%12===10){this.hit=false;doHit(this,o,3,0,12,false,o.x-this.face*14,o.y-o.c.h*.6);game.freeze=0;o.vx=0;if(o.st==='hurt')o.x=clamp(this.x+this.face*44,40,W-40)}
+        if(t%4===0)parts.push({x:o.x-this.face*10,y:o.y-o.c.h*.55,vx:(Math.random()-.5)*3,vy:-1-Math.random(),life:16,max:16,col:'rgba(240,230,210,.9)',sz:5});
+        game.shake=Math.max(game.shake,3);
+      }
+      else if(this.grab===1){this.grab=2;this.hit=false;this.vx=0;if(o.st!=='ko'){o.x=clamp(this.x+this.face*44,40,W-40);doHit(this,o,8,15,28,true,o.x-this.face*14,o.y-o.c.h*.6)}}
+      else{this.vx*=.6;if(t>=(this.grab?86:40)){this.grab=0;this.setSt('idle')}}
     }else if(sp==='dash'||sp==='lunge'){
       const st=sp==='dash'?12:8,en=sp==='dash'?36:30,v=sp==='dash'?12.5:15;
       if(t<st)this.vx=0;
@@ -1153,7 +1161,7 @@ function drawPuppet(f,p){
   g.restore();
 }
 // cuadro especial por luchador (s = tiempo del especial)
-const SPRSP={pollo:s=>'special',coreano:s=>s<14?'grenade':s<26?'punch':'idle',galgo:s=>s<6?'idle':s<22?['walk','idle'][(s>>2)%2]:s<32?'special':'idle'};
+const SPRSP={pollo:s=>'special',coreano:s=>s<14?'grenade':s<26?'punch':'idle',galgo:s=>s<6?'idle':s<22?['walk','idle'][(s>>2)%2]:s<76?'special':'idle'};
 const SPRX={pollo:{air:'special',win:'special',blk:'adv',walk:['walk','idle','adv','idle']},
   coreano:{air:'kick',win:'idle',blk:'idle',walk:['walk','idle']},
   galgo:{air:'kick',win:'special',blk:'idle',walk:['walk','idle']}};
@@ -1180,7 +1188,6 @@ function drawSprite(f,p){
   const k=f.c.h*(f.c.sh||1.12)/M.idle.h;
   if(f.alt&&'filter' in g)g.filter='hue-rotate(150deg) saturate(1.2)';
   g.drawImage(im,-m.ax*k,-m.h*k,m.w*k,m.h*k);
-  if(f.ck==='galgo'&&p.spc>=24&&p.spc<38)biteFx(p.spc,60,-f.c.h*.8);
   if(f.alt&&'filter' in g)g.filter='none';
 }
 function drawChar(f,p){if(SPR[f.ck])drawSprite(f,p);else if(PUP[f.ck])drawPuppet(f,p);else drawBody(f,p)}
