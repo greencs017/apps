@@ -1,0 +1,16 @@
+{
+  "name": "Mis Compras",
+  "short_name": "Mis Compras",
+  "id": "/apps/mis-compras/",
+  "start_url": "./?build=20261115-install1",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f7f2",
+  "theme_color": "#1f8a4c",
+  "icons": [
+    { "src": "icon-192.png?v=1", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512-maskable.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
