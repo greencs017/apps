@@ -24,6 +24,15 @@
     app.src = url.href;
   }
   app.addEventListener('load', () => { clearTimeout(timer); shell.classList.add('ready'); });
+  // iPhone con la app instalada: el alto "100%" no incluye la zona de la isla/notch y queda una franja abajo.
+  // Se ajusta el marco al alto real de la pantalla.
+  function fit() {
+    const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+    const portrait = innerHeight >= innerWidth;
+    const h = standalone ? Math.max(innerHeight, portrait ? screen.height : screen.width) : innerHeight;
+    app.style.height = h + 'px'; shell.style.height = h + 'px';
+  }
+  fit(); addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 300));
   retry.addEventListener('click', open);
   // Si el puente vuelve con la app ya abierta (misma pestaña), se recarga el marco con los productos.
   window.addEventListener('hashchange', () => {
