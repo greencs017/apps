@@ -14,7 +14,7 @@
     simulador:['https://simulador-remuneraciones-delta.vercel.app'],
     gastos:['https://mis-gastos-ecru.vercel.app'],
     licencias:['https://revisor-licencias-medicas.vercel.app'],
-    bebe:['https://nuestro-bebe.vercel.app']
+    bebe:['https://nuestro-bebe-psi.vercel.app']
   };
   const appSourceOrigin=(()=>{try{return new URL(app.dataset.src).origin;}catch(_){return '';}})();
   const expectedOrigin=(appOrigins[appId]||[]).includes(appSourceOrigin)?appSourceOrigin:'';
