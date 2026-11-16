@@ -124,6 +124,11 @@
     $('otherApps').hidden = !otherCount;
     $('login').hidden = !(recognized === 0 || pendingLink > 0 || showLogin);
     const adminApps = results.filter(r => r.data && r.data.owner && r.data.reconocido).map(r => r.app);
+    // El administrador (Google) también ve las aplicaciones familiares.
+    if (adminApps.length && FAMILY_APPS.some(app => !familyVisible.includes(app))) {
+      FAMILY_APPS.forEach(app => store.set(app.flag, '1'));
+      familyVisible = FAMILY_APPS.slice(); renderFamily();
+    }
     // Confirmación periódica con Google (cada 30 días): se abre directamente la opción del administrador.
     if (results.some(r => r.data && r.data.owner && !r.data.reconocido)) { $('login').hidden = false; document.querySelector('details.owner').open = true; }
     $('openPanel').hidden = !adminApps.length;
