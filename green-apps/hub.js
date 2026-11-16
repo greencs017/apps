@@ -19,7 +19,8 @@
   const FREE_APPS = [
     { id: 'academia-fight', name: 'Academia Fight', desc: 'Juego de peleas', path: '../academia-fight/', icon: '../academia-fight/icon-192.png?v=1' },
     { id: 'green-english', name: 'Green English', desc: 'Inglés para niños', path: '../green-english/', icon: '../green-english/icon-192.png?v=1' },
-    { id: 'mis-compras', name: 'Mis Compras', desc: 'Lista de compras con precios', path: '../mis-compras/', icon: '../mis-compras/icon-192.png?v=1' }
+    { id: 'mis-compras', name: 'Mis Compras', desc: 'Lista de compras con precios', path: '../mis-compras/', icon: '../mis-compras/icon-192.png?v=1' },
+    { id: 'mis-calorias', name: 'Mis Calorías', desc: 'Calorías con foto y plan IA', path: '../mis-calorias/', icon: '../mis-calorias/icon-192.png?v=1' }
   ];
   // Aplicaciones familiares: solo aparecen en los dispositivos de la familia
   // (correo de la familia guardado en Green Apps, o si ya se abrió la aplicación en este dispositivo).
