@@ -21,6 +21,14 @@
     { id: 'green-english', name: 'Green English', desc: 'Inglés para niños', path: '../green-english/', icon: '../green-english/icon-192.png?v=1' },
     { id: 'mis-compras', name: 'Mis Compras', desc: 'Lista de compras con precios', path: '../mis-compras/', icon: '../mis-compras/icon-192.png?v=1' }
   ];
+  // Aplicaciones familiares: solo aparecen en los dispositivos de la familia
+  // (correo de la familia guardado en Green Apps, o si ya se abrió la aplicación en este dispositivo).
+  // Los correos se guardan como huella SHA-256 para no publicarlos. El acceso real lo valida cada aplicación.
+  const FAMILY_APPS = [
+    { id: 'nuestro-bebe', name: 'Nuestro Bebé', desc: 'Diario del embarazo y del bebé', path: '../nuestro-bebe/', icon: '../nuestro-bebe/icon-192.png?v=1',
+      flag: 'greenapps.family.nuestro-bebe',
+      emails: ['f362769f2e40e73b2dbb692b689669507562015d9b167e3b7fa86ba82b19fcc4', 'f67b754c2ac747c2f2b58c442365b8a7f25c58212fefa20a5d9717cbdf3c6b41'] }
+  ];
   const CLIENT_ID = '892491045559-mt2b7iabv71djbu6icf6rpl2a2fa90e8.apps.googleusercontent.com';
   const EMAIL_KEY = 'greenapps.email.v1', KNOWN_KEY = 'greenapps.authorized.v1', GOOGLE_KEY = 'greenapps.google.v1';
   const DEVICE_STORAGE_KEY = 'apps.admin.device.v1', DEVICE_COOKIE_KEY = 'apps_admin_device_v1';
@@ -89,6 +97,7 @@
     lastResults = results;
     const grid = $('apps'), others = $('othersList');
     grid.textContent = ''; others.textContent = '';
+    renderFamily();
     const known = new Set(store.get(KNOWN_KEY).split(',').filter(Boolean));
     let name = '', mine = 0, pendingLink = 0, recognized = 0, otherCount = 0, failed = 0;
     for (const { app, data, error } of results) {
@@ -141,7 +150,7 @@
     const btn = e.submitter || $('emailForm').querySelector('button'); btn.disabled = true;
     status('Vinculando este dispositivo en tus aplicaciones…');
     try {
-      store.set(EMAIL_KEY, email); showLogin = false;
+      store.set(EMAIL_KEY, email); showLogin = false; updateFamily();
       render(await askAll({ op: 'vincularCorreo', email }));
     } finally { btn.disabled = false; }
   };
@@ -380,6 +389,25 @@
     pushStatus(ok === panelApps.length ? 'Clave guardada en las ' + ok + ' aplicaciones. Ahora pulsa «Activar notificaciones» y luego «Enviar una prueba».' : 'Clave guardada en ' + ok + ' de ' + panelApps.length + ' aplicaciones.');
   };
 
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf), v => v.toString(16).padStart(2, '0')).join('');
+  }
+  let familyVisible = [];
+  async function updateFamily() {
+    const email = store.get(EMAIL_KEY).trim().toLowerCase();
+    let hash = '';
+    try { hash = email ? await sha256(email) : ''; } catch (_) {}
+    familyVisible = FAMILY_APPS.filter(app => store.get(app.flag) === '1' || (hash && app.emails.includes(hash)));
+    familyVisible.forEach(app => store.set(app.flag, '1'));
+    renderFamily();
+  }
+  function renderFamily() {
+    const grid = $('apps');
+    grid.querySelectorAll('.family-app').forEach(n => n.remove());
+    familyVisible.forEach(app => { const c = card(app, 'Familia', false); c.classList.add('family-app'); grid.prepend(c); });
+  }
+
   function renderFree() {
     const list = $('freeList');
     list.textContent = '';
@@ -394,5 +422,6 @@
   try { sessionStorage.removeItem('greenapps.via'); } catch (_) {}
   window.addEventListener('pageshow', e => { if (e.persisted) refresh(); });
   renderFree();
+  updateFamily();
   refresh();
 })();
