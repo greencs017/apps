@@ -2,7 +2,7 @@
   "name": "Mis Calorías",
   "short_name": "Mis Calorías",
   "id": "/apps/mis-calorias/",
-  "start_url": "./?build=20261116-install1",
+  "start_url": "./?build=20261116-install2",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

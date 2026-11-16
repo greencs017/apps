@@ -2,14 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src https://mis-calorias.vercel.app; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://cdn.onesignal.com https://api.onesignal.com; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style https://cdn.onesignal.com https://onesignal.com; img-src 'self' data: https:; font-src 'self' data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'self' https://accounts.google.com/gsi/ https://cdn.onesignal.com https://api.onesignal.com https://onesignal.com; frame-src https://mis-calorias.vercel.app https://accounts.google.com/gsi/">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f3f7f2" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0f1712" media="(prefers-color-scheme: dark)">
-  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f3f7f2">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -20,24 +18,35 @@
   <link rel="manifest" href="manifest.webmanifest?v=1">
   <title>Mis Calorías</title>
   <style>
-    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#f3f7f2}
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#f3f7f2}
     #shell{position:fixed;inset:0;background:#f3f7f2}
-    iframe{position:absolute;top:0;left:0;display:block;width:100%;height:100%;height:100lvh;min-height:100%;border:0;background:#f3f7f2}
-    @media (prefers-color-scheme:dark){html,body,#shell,iframe,#loading{background:#0f1712}#loading{color:#7fdca3}}
+    iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#f3f7f2}
     #loading{position:absolute;inset:0;display:grid;place-items:center;padding:24px;z-index:2;color:#1f8a4c;font:700 20px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f7f2;text-align:center}
     .ready #loading{display:none}
+    #googleLayer{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;width:min(92vw,360px);padding:12px;background:#fffffff2;border:1px solid #d5e4dc;border-radius:15px;box-shadow:0 10px 30px #0003;text-align:center}
+    #googleLayer[hidden]{display:none}
+    #googleButton{min-height:44px;display:flex;justify-content:center}
+    #googleStatus{margin:7px 0 0;color:#51675f;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    #bridgeDiagnostics{display:none!important;position:fixed;top:calc(8px + env(safe-area-inset-top));right:8px;z-index:20;max-width:94vw;background:#fff;color:#174b35;padding:6px 10px;border:1px solid #b9cabe;border-radius:8px;font:12px system-ui}
+    #bridgeDiagnostics pre{white-space:pre-wrap;max-height:45vh;overflow:auto}
     #retry{padding:12px 22px;border-radius:10px;font:inherit}
   </style>
 </head>
 <body>
   <main id="shell">
     <div id="loading"><div><p id="loadingText">Abriendo Mis Calorías…</p><button id="retry" hidden>Reintentar</button></div></div>
-    <iframe id="app" data-app="mis-calorias" title="Mis Calorías" width="100%" height="100%" frameborder="0"
-      data-src="https://mis-calorias.vercel.app/?build=20261116-1"
-      allow="clipboard-read; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    <iframe id="app" data-app="calorias" title="Mis Calorías"
+      data-src="https://mis-calorias.vercel.app/?build=20261116-2"
+      allow="clipboard-read; clipboard-write; web-share" referrerpolicy="strict-origin-when-cross-origin"></iframe>
   </main>
+  <details id="bridgeDiagnostics"><summary id="bridgeSummary">Diagnóstico</summary><pre id="bridgeTrace"></pre></details>
+  <section id="googleLayer" hidden>
+    <div id="googleButton"></div>
+    <p id="googleStatus">Entra con tu cuenta de Google</p>
+  </section>
   <noscript>Activa JavaScript para abrir Mis Calorías.</noscript>
   <script src="../install-guide.js?v=20261006-install3" defer></script>
-  <script src="launcher.js?v=2" defer></script>
+  <script src="../access-bridge.js?v=20261116-calorias1" defer></script>
 </body>
 </html>
