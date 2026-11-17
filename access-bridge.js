@@ -6,6 +6,7 @@
   const clientId='892491045559-mt2b7iabv71djbu6icf6rpl2a2fa90e8.apps.googleusercontent.com';
   const prefix=appId==='escalafon'?'escalafon-':'apps-'+appId+'-';
   const logoutKey='apps.'+appId+'.signed-out.v1';
+  const sessionKey='apps.'+appId+'.session.v1';
   const trace=document.getElementById('bridgeTrace'),summary=document.getElementById('bridgeSummary');
   // Orígenes permitidos por aplicación (solo los despliegues vigentes).
   const appOrigins={
@@ -213,12 +214,17 @@
       if(d.type!=='apps-bridge-ready'||d.version!==1)return;
       // A nonce unique to this iframe load binds the inner Google frame; origin alone is insufficient.
       source=event.source;sourceOrigin=event.origin;transition('BRIDGE_READY');
-      send({type:'apps-bridge-ack',signedOut:localStorage.getItem(logoutKey)==='1'});return;
+      let saved=null;try{saved=JSON.parse(localStorage.getItem(sessionKey)||'null');}catch(_){}
+      send({type:'apps-bridge-ack',signedOut:localStorage.getItem(logoutKey)==='1',...(saved&&typeof saved.session==='string'?{session:saved.session,email:String(saved.email||'')}:{})});return;
     }
     if(event.source!==source||event.origin!==sourceOrigin)return;
     if(d.type==='apps-bridge-state'){
       const allowed=['DEVICE_RECEIVED','DEVICE_CHECK','DEVICE_TRUSTED','RESUME_SESSION','SESSION_RESUMED','GOOGLE_VERIFYING','GOOGLE_VALIDATED','TRUST_DEVICE','LOGIN_READY','APP_READY','ERROR'];
       if(allowed.includes(d.state))transition(d.state,typeof d.detail==='string'?d.detail.slice(0,250):'');
+    }else if(d.type==='apps-session-save'){
+      // La sesión de la aplicación se guarda aquí (almacenamiento propio del lanzador), porque el
+      // almacenamiento del iframe de otro dominio puede borrarse y obligaría a entrar con Google de nuevo.
+      try{if(typeof d.session==='string'&&d.session&&d.session.length<=600)localStorage.setItem(sessionKey,JSON.stringify({session:d.session,email:String(d.email||'').slice(0,200)}));else localStorage.removeItem(sessionKey);}catch(_){}
     }else if(d.type==='apps-bridge-signout'){
       if(d.value===true)localStorage.setItem(logoutKey,'1');else localStorage.removeItem(logoutKey);
     }else if(d.type==='apps-admin-google-required'||d.type==='escalafon-google-login'){

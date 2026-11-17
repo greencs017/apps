@@ -94,3 +94,18 @@ test('Escalafón oficial abre la versión sin Apps Script y el puente acepta amb
  assert.ok(bridge.includes("escalafon:['https://escalafon-online.vercel.app']"));
  assert.ok(!bridge.includes('escalafon-pns.vercel.app'),'el origen retirado ya no se acepta');
 });
+
+test('the launcher keeps the app session and returns it on the next opening',async()=>{
+ const a=boot();
+ await a.emit({type:'apps-bridge-ready',version:1});
+ assert.equal(a.sent[0].d.session,undefined);
+ await a.emit({type:'apps-session-save',session:'abc.def',email:'a@b.cl'});
+ const b=boot(a.saved);
+ await b.emit({type:'apps-bridge-ready',version:1});
+ assert.equal(b.sent[0].d.session,'abc.def');
+ assert.equal(b.sent[0].d.email,'a@b.cl');
+ await b.emit({type:'apps-session-save',session:''});
+ const c=boot(b.saved);
+ await c.emit({type:'apps-bridge-ready',version:1});
+ assert.equal(c.sent[0].d.session,undefined);
+});
