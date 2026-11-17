@@ -2,6 +2,13 @@
 (() => {
   'use strict';
   const app=document.getElementById('app'),shell=document.getElementById('shell');
+  let greenAppsInApp=false;
+  function openedFromGreenApps(){
+    try{
+      if(new URLSearchParams(location.search||'').get('via')==='green-apps')sessionStorage.setItem('greenapps.via','1');
+      return sessionStorage.getItem('greenapps.via')==='1';
+    }catch(_){return false;}
+  }
   const appId=app.dataset.app,googleLayer=document.getElementById('googleLayer'),status=document.getElementById('googleStatus');
   const clientId='892491045559-mt2b7iabv71djbu6icf6rpl2a2fa90e8.apps.googleusercontent.com';
   const prefix=appId==='escalafon'?'escalafon-':'apps-'+appId+'-';
@@ -215,12 +222,17 @@
       // A nonce unique to this iframe load binds the inner Google frame; origin alone is insufficient.
       source=event.source;sourceOrigin=event.origin;transition('BRIDGE_READY');
       let saved=null;try{saved=JSON.parse(localStorage.getItem(sessionKey)||'null');}catch(_){}
-      send({type:'apps-bridge-ack',signedOut:localStorage.getItem(logoutKey)==='1',...(saved&&typeof saved.session==='string'?{session:saved.session,email:String(saved.email||'')}:{})});return;
+      send({type:'apps-bridge-ack',signedOut:localStorage.getItem(logoutKey)==='1',viaGreenApps:openedFromGreenApps(),...(saved&&typeof saved.session==='string'?{session:saved.session,email:String(saved.email||'')}:{})});return;
     }
     if(event.source!==source||event.origin!==sourceOrigin)return;
     if(d.type==='apps-bridge-state'){
       const allowed=['DEVICE_RECEIVED','DEVICE_CHECK','DEVICE_TRUSTED','RESUME_SESSION','SESSION_RESUMED','GOOGLE_VERIFYING','GOOGLE_VALIDATED','TRUST_DEVICE','LOGIN_READY','APP_READY','ERROR'];
       if(allowed.includes(d.state))transition(d.state,typeof d.detail==='string'?d.detail.slice(0,250):'');
+    }else if(d.type==='apps-greenapps-inapp'){
+      // La aplicación muestra su propio botón para volver a Green Apps: se quita el botón flotante.
+      const fb=document.getElementById('greenAppsBack');if(fb)fb.remove();greenAppsInApp=true;
+    }else if(d.type==='apps-greenapps-go'){
+      if(openedFromGreenApps())location.href='../green-apps/';
     }else if(d.type==='apps-session-save'){
       // La sesión de la aplicación se guarda aquí (almacenamiento propio del lanzador), porque el
       // almacenamiento del iframe de otro dominio puede borrarse y obligaría a entrar con Google de nuevo.
@@ -247,12 +259,8 @@
   // Green Apps: si la aplicación se abrió desde el portal, un botón pequeño permite volver a él.
   // Abierta por su propio ícono o enlace, la aplicación funciona exactamente igual que antes.
   (function greenAppsBack(){
-    let via=false;
-    try{
-      if(new URLSearchParams(location.search||'').get('via')==='green-apps')sessionStorage.setItem('greenapps.via','1');
-      via=sessionStorage.getItem('greenapps.via')==='1';
-    }catch(_){}
-    if(!via||!document.body)return;
+    const via=openedFromGreenApps();
+    if(!via||greenAppsInApp||!document.body)return;
     const b=document.createElement('a');
     b.id='greenAppsBack';b.href='../green-apps/';b.title='Volver a Green Apps';b.setAttribute('aria-label','Volver a Green Apps');
     b.style.cssText='position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:30;width:42px;height:42px;border-radius:12px;'
