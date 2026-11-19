@@ -13,7 +13,9 @@
     { id: 'licencias', short: 'Licencias', name: 'Revisor de Licencias Médicas', desc: 'Revisión y cotejo de licencias', path: '../revisor-licencias-medicas/',
       icon: '../revisor-licencias-medicas/icono-licencias-192.png', api: 'https://revisor-licencias-medicas.vercel.app/api/green-apps' },
     { id: 'revisor', short: 'Cargo Fiscal', name: 'Revisor de Cargo Fiscal', desc: 'Revista técnica L5', path: '../revisor-cargo-fiscal/',
-      icon: '../revisor-cargo-fiscal/icons-v6/icon-192.png', api: 'https://revisor-cargo-l5.vercel.app/api/green-apps' }
+      icon: '../revisor-cargo-fiscal/icons-v6/icon-192.png', api: 'https://revisor-cargo-l5.vercel.app/api/green-apps' },
+    { id: 'greenbot', short: 'GreenBot', name: 'GreenBot', desc: 'Asistente de normativa e instrucciones institucionales', path: '../greenbot/',
+      icon: '../greenbot/icono-greenbot-192.png', api: 'https://greenbot-psi.vercel.app/api/green-apps' }
   ];
   // Aplicaciones de libre acceso: se muestran a todos, sin revisar autorización ni pedir correo.
   const FREE_APPS = [
