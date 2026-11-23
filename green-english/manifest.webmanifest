@@ -1,6 +1,6 @@
 {
-  "name": "Green English",
-  "short_name": "Green English",
+  "name": "Green Language",
+  "short_name": "Green Language",
   "id": "/apps/green-english/",
   "start_url": "./?build=20261113-install1",
   "scope": "./",
