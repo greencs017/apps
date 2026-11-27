@@ -19,6 +19,28 @@
     timer = setTimeout(() => { text.textContent = 'Green Language está tardando en abrir. Revisa tu conexión.'; retry.hidden = false; }, 20000);
     app.src = url.href;
   }
+
+  /* Bóveda de Green Language: en iPhone, Safari puede borrar los datos del marco (vercel.app) al cerrar
+   * la app instalada. Este lanzador sí conserva los suyos, así que guarda aquí la vinculación
+   * adulto–niño y una copia del avance, y se las devuelve a la app cada vez que abre.
+   * Solo acepta mensajes del marco de Green Language. */
+  const APP_ORIGIN = 'https://green-english.vercel.app';
+  const VK = { sync: 'gl.vault.sync.v1', state: 'gl.vault.state.v1', ar: 'gl.vault.ar.v1' };
+  const get = k => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
+  const put = (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (_) {} };
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (_) {}
+  window.addEventListener('message', e => {
+    if (e.origin !== APP_ORIGIN || e.source !== app.contentWindow || !e.data || typeof e.data !== 'object') return;
+    const d = e.data;
+    if (d.type === 'gl:hello') {
+      app.contentWindow.postMessage({ type: 'gl:vault', sync: get(VK.sync), state: get(VK.state), ar: get(VK.ar) }, APP_ORIGIN);
+    } else if (d.type === 'gl:save') {
+      // sync: null = el adulto desvinculó con el botón; se borra solo en ese caso.
+      if ('sync' in d && (d.sync === null || (typeof d.sync === 'string' && d.sync.length < 2000))) put(VK.sync, d.sync || '');
+      if (typeof d.state === 'string' && d.state.length < 900000) put(VK.state, d.state);
+      if (typeof d.ar === 'string' && d.ar.length < 900000) put(VK.ar, d.ar);
+    }
+  });
   app.addEventListener('load', () => { clearTimeout(timer); shell.classList.add('ready'); });
   retry.addEventListener('click', open);
   open();
