@@ -24,7 +24,8 @@
     licencias:['https://revisor-licencias-medicas.vercel.app'],
     bebe:['https://nuestro-bebe-psi.vercel.app'],
     calorias:['https://mis-calorias.vercel.app'],
-    greenbot:['https://greenbot-psi.vercel.app']
+    greenbot:['https://greenbot-psi.vercel.app'],
+    novedades:['https://novedades-policiales.vercel.app']
   };
   const appSourceOrigin=(()=>{try{return new URL(app.dataset.src).origin;}catch(_){return '';}})();
   const expectedOrigin=(appOrigins[appId]||[]).includes(appSourceOrigin)?appSourceOrigin:'';

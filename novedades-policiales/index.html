@@ -5,42 +5,49 @@
 <script src="../sin-rebote.js?v=1"></script>
 
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src https://novedades-policiales.vercel.app; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client https://cdn.onesignal.com https://api.onesignal.com; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style https://cdn.onesignal.com https://onesignal.com; img-src 'self' data: https:; font-src 'self' data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'self' https://accounts.google.com/gsi/ https://cdn.onesignal.com https://api.onesignal.com https://onesignal.com; frame-src https://escalafon-online.vercel.app https://revisor-cargo-l5.vercel.app https://simulador-remuneraciones-delta.vercel.app https://revisor-licencias-medicas.vercel.app https://mis-gastos-ecru.vercel.app https://novedades-policiales.vercel.app https://accounts.google.com/gsi/">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0e5a36" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0e5a36" media="(prefers-color-scheme: dark)">
-  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#0e5a36">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Novedades Policiales">
   <meta name="application-name" content="Novedades Policiales">
   <link rel="icon" type="image/png" href="icon-192.png?v=1">
   <link rel="apple-touch-icon" href="icon-180.png?v=1">
-  <link rel="manifest" href="manifest.webmanifest?v=1">
+  <link rel="manifest" href="manifest.webmanifest?v=2">
   <title>Novedades Policiales</title>
   <style>
-    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0e5a36}
-    #shell{position:fixed;inset:0;background:#0e5a36}
-    iframe{position:absolute;top:0;left:0;display:block;width:100%;height:100%;height:100lvh;min-height:100%;border:0;background:#0e5a36}
-    @media (prefers-color-scheme:dark){html,body,#shell,iframe,#loading{background:#0e5a36}#loading{color:#ffffff}}
-    #loading{position:absolute;inset:0;display:grid;place-items:center;padding:24px;z-index:2;color:#ffffff;font:700 20px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0e5a36;text-align:center}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#eaf0ec}
+    #shell{position:fixed;inset:0;background:#eaf0ec}
+    iframe{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;background:#eaf0ec}
+    #loading{position:absolute;inset:0;display:grid;place-items:center;padding:24px;z-index:2;color:#0e5a36;font:700 20px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#eaf0ec}
     .ready #loading{display:none}
-    #retry{padding:12px 22px;border-radius:10px;font:inherit}
+    #googleLayer{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;width:min(92vw,360px);padding:12px;background:#fffffff2;border:1px solid #d5e4dc;border-radius:15px;box-shadow:0 10px 30px #0d30242e;text-align:center}
+    #googleLayer[hidden]{display:none}
+    #googleButton{min-height:44px;display:flex;justify-content:center}
+    #googleStatus{margin:7px 0 0;color:#51675f;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  #bridgeDiagnostics{display:none!important;position:fixed;top:calc(8px + env(safe-area-inset-top));right:8px;z-index:20;max-width:94vw;background:#fff;color:#174b35;padding:6px 10px;border:1px solid #b9cabe;border-radius:8px;font:12px system-ui}#bridgeDiagnostics pre{white-space:pre-wrap;max-height:45vh;overflow:auto}#retry{padding:12px 22px;border-radius:10px;font:inherit}#loading{text-align:center}/* El iframe se mantiene en origen (0,0); la app interna administra el área segura iOS. */
   </style>
+  
 </head>
 <body>
   <main id="shell">
     <div id="loading"><div><p id="loadingText">Abriendo Novedades Policiales…</p><button id="retry" hidden>Reintentar</button></div></div>
-    <iframe id="app" data-app="novedades-policiales" title="Novedades Policiales" width="100%" height="100%" frameborder="0"
-      data-src="https://novedades-policiales.vercel.app/?build=20261127-1"
+    <iframe id="app" data-app="novedades" title="Novedades Policiales" width="100%" height="100%" frameborder="0" style="position:absolute;inset:0;display:block;width:100%!important;height:100%!important;border:0!important;"
+      data-src="https://novedades-policiales.vercel.app/?build=20261127-acceso1"
       allow="clipboard-read; clipboard-write; microphone" referrerpolicy="strict-origin-when-cross-origin"></iframe>
   </main>
+  <details id="bridgeDiagnostics"><summary id="bridgeSummary">Diagnóstico</summary><pre id="bridgeTrace"></pre></details>
+  <section id="googleLayer" hidden>
+    <div id="googleButton"></div>
+    <p id="googleStatus">Acceso seguro con Google · 20261006-vercel1</p>
+  </section>
   <noscript>Activa JavaScript para abrir Novedades Policiales.</noscript>
-  <script src="../install-guide.js?v=20261006-install3" defer></script>
-  <script src="launcher.js?v=1" defer></script>
+<script src="../install-guide.js?v=20261006-install3" defer></script>
+<script src="../access-bridge.js?v=20261127-novedades1" defer></script>
 </body>
 </html>
+

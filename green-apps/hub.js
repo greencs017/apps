@@ -15,15 +15,16 @@
     { id: 'revisor', short: 'Cargo Fiscal', name: 'Revisor de Cargo Fiscal', desc: 'Revista técnica L5', path: '../revisor-cargo-fiscal/',
       icon: '../revisor-cargo-fiscal/icons-v6/icon-192.png', api: 'https://revisor-cargo-l5.vercel.app/api/green-apps' },
     { id: 'greenbot', short: 'GreenBot', name: 'GreenBot', desc: 'Asistente de normativa e instrucciones institucionales', path: '../greenbot/',
-      icon: '../greenbot/icono-greenbot-192.png', api: 'https://greenbot-psi.vercel.app/api/green-apps' }
+      icon: '../greenbot/icono-greenbot-192.png', api: 'https://greenbot-psi.vercel.app/api/green-apps' },
+    { id: 'novedades', short: 'Novedades', name: 'Novedades Policiales', desc: 'Cuentas para WhatsApp y mensaje oficial', path: '../novedades-policiales/',
+      icon: '../novedades-policiales/icon-192.png?v=1', api: 'https://novedades-policiales.vercel.app/api/green-apps' }
   ];
   // Aplicaciones de libre acceso: se muestran a todos, sin revisar autorización ni pedir correo.
   const FREE_APPS = [
     { id: 'academia-fight', name: 'Academia Fight', desc: 'Juego de peleas', path: '../academia-fight/', icon: '../academia-fight/icon-192.png?v=1' },
     { id: 'green-english', name: 'Green Language', desc: 'Inglés para niños · Árabe para adultos', path: '../green-english/', icon: '../green-english/icon-192.png?v=1' },
     { id: 'mis-compras', name: 'Mis Compras', desc: 'Lista de compras con precios', path: '../mis-compras/', icon: '../mis-compras/icon-192.png?v=1' },
-    { id: 'mis-calorias', name: 'Mis Calorías', desc: 'Calorías con foto y plan IA', path: '../mis-calorias/', icon: '../mis-calorias/icon-192.png?v=1' },
-    { id: 'novedades-policiales', name: 'Novedades Policiales', desc: 'Cuentas para WhatsApp y mensaje oficial (con código)', path: '../novedades-policiales/', icon: '../novedades-policiales/icon-192.png?v=1' }
+    { id: 'mis-calorias', name: 'Mis Calorías', desc: 'Calorías con foto y plan IA', path: '../mis-calorias/', icon: '../mis-calorias/icon-192.png?v=1' }
   ];
   // Aplicaciones familiares: solo aparecen en los dispositivos de la familia
   // (correo de la familia guardado en Green Apps, o si ya se abrió la aplicación en este dispositivo).
